@@ -83,7 +83,7 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
           onClick={() => onNavigate('conversation')}
           className="flex items-center gap-2 text-[#7065f0] hover:text-[#5048c7] transition-colors font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px]"  style="padding-bottom:20px;">
           <ChevronLeft className="w-5 h-5" />
-          Back to conversation
+          Back to conversation 2
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
