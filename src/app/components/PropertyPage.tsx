@@ -81,7 +81,7 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
         {/* Back Button */}
         <button
           onClick={() => onNavigate('conversation')}
-          className="flex items-center gap-2 text-[#7065f0] hover:text-[#5048c7] transition-colors font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px]"  style="padding-bottom: 20px;">
+          className="flex items-center gap-2 text-[#7065f0] hover:text-[#5048c7] transition-colors font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px]"  style="padding-bottom:20px;">
           <ChevronLeft className="w-5 h-5" />
           Back to conversation
         </button>
