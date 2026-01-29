@@ -52,11 +52,11 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
     <div className="bg-white min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-[#f0effb] py-6 px-8">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between" style="margin:0 auto;">
           <button 
             onClick={() => onNavigate('home')}
             className="font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[44px] text-[#110229] uppercase tracking-[-1.32px] cursor-pointer hover:text-[#7065f0] transition-colors"
-          >
+          style="padding-bottom: 20px;">
             HOMIX.AI
           </button>
           <nav className="flex gap-6 font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] tracking-[-0.54px] uppercase">
