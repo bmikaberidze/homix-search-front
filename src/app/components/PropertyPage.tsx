@@ -52,11 +52,10 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
     <div className="bg-white min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-[#f0effb] py-6 px-8">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between" style="margin:0 auto;">
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
           <button 
             onClick={() => onNavigate('home')}
-            className="font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[44px] text-[#110229] uppercase tracking-[-1.32px] cursor-pointer hover:text-[#7065f0] transition-colors"
-          style="padding-bottom: 20px;">
+            className="font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[44px] text-[#110229] uppercase tracking-[-1.32px] cursor-pointer hover:text-[#7065f0] transition-colors">
             HOMIX.AI
           </button>
           <nav className="flex gap-6 font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] tracking-[-0.54px] uppercase">
@@ -78,12 +77,11 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
       </header>
 
       {/* Content */}
-      <div className="max-w-[1200px] px-[16px] py-[32px] mx-[96px] my-[0px]">
+      <div className="max-w-[1200px] px-[16px] py-[32px] mx-[96px] my-[0px]" style="margin:0 auto;">
         {/* Back Button */}
         <button
           onClick={() => onNavigate('conversation')}
-          className="flex items-center gap-2 text-[#7065f0] hover:text-[#5048c7] transition-colors font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px]"
-        >
+          className="flex items-center gap-2 text-[#7065f0] hover:text-[#5048c7] transition-colors font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px]"  style="padding-bottom: 20px;">
           <ChevronLeft className="w-5 h-5" />
           Back to conversation
         </button>
