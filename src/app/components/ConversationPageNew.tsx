@@ -150,19 +150,61 @@ export default function ConversationPageNew({
     const controller = new AbortController();
     requestControllerRef.current = controller;
 
+    // Create a placeholder message ID
+    const aiMessageId = (Date.now() + 1).toString();
+    const startTime = getCurrentTime();
+
+    // Optimistically add the AI message with empty content or loading state
+    const initialAiMessage: Message = {
+      id: aiMessageId,
+      type: 'ai',
+      content: '', // Start empty
+      timestamp: startTime,
+    };
+    
+    setGeneralMessages(prev => [...prev, initialAiMessage]);
+    setIsTyping(true);
+
+    let fullText = '';
+
     try {
-      const { text } = await sendChatMessage(messageText, sessionIdRef.current, controller.signal);
-      const properties = matchPropertiesFromResponse(text, messageText);
+      await import('@/app/api/chat').then(m => 
+        m.streamChatMessage(
+          messageText, 
+          sessionIdRef.current, 
+          (event) => {
+            if (event.type === 'answer' && event.content) {
+              fullText += event.content;
+              
+              setGeneralMessages(prev => 
+                prev.map(msg => 
+                  msg.id === aiMessageId 
+                    ? { ...msg, content: fullText } 
+                    : msg
+                )
+              );
+            } else if (event.type === 'done') {
+              // Final processing if needed
+              // If the done event contains the full text or additional data, use it.
+              // Assuming 'content' in done might be the full text or we just use what we built.
+            }
+          },
+          controller.signal
+        )
+      );
+      
+      // After stream is done, match properties
+      const properties = matchPropertiesFromResponse(fullText, messageText);
+      if (properties.length > 0) {
+        setGeneralMessages(prev => 
+          prev.map(msg => 
+            msg.id === aiMessageId 
+              ? { ...msg, properties } 
+              : msg
+          )
+        );
+      }
 
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: text,
-        timestamp: getCurrentTime(),
-        properties: properties.length > 0 ? properties : undefined,
-      };
-
-      setGeneralMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         return;
@@ -171,16 +213,18 @@ export default function ConversationPageNew({
       console.error('Chat API error:', error);
       toast.error('Chat service is unavailable. Showing fallback results.');
 
-      // Fallback on error
+      // Fallback on error - remove the empty/partial message and show fallback
+      // Or update the existing one with fallback text
       const properties = matchPropertiesFromResponse('', messageText);
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: properties.length > 0 ? 'Here are some properties I found:' : 'Let me help you find properties. What are you looking for?',
-        timestamp: getCurrentTime(),
-        properties: properties.length > 0 ? properties : undefined,
-      };
-      setGeneralMessages(prev => [...prev, aiResponse]);
+      const fallbackContent = properties.length > 0 ? 'Here are some properties I found:' : 'Let me help you find properties. What are you looking for?';
+      
+      setGeneralMessages(prev => 
+        prev.map(msg => 
+          msg.id === aiMessageId 
+            ? { ...msg, content: fallbackContent, properties: properties.length > 0 ? properties : undefined } 
+            : msg
+        )
+      );
     } finally {
       if (requestControllerRef.current === controller) {
         setIsTyping(false);
