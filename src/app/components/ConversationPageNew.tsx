@@ -5,7 +5,7 @@ import { getCurrentTime, matchPropertiesFromResponse } from '@/app/utils';
 import { sendChatMessage } from '@/app/api/chat';
 import PropertyCard from './PropertyCard';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
-import { MessageCircle, Send, Home as HomeIcon, User, Building2 } from 'lucide-react';
+import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserData } from './AuthDialog';
 import UserMenu from './UserMenu';
@@ -68,6 +68,32 @@ function TypingIndicator() {
           }}
         />
       ))}
+    </div>
+  );
+}
+
+// Thinking Block Component
+function ThinkingBlock({ content }: { content: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!content) return null;
+
+  return (
+    <div className="mb-2 w-full max-w-[80%]">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f0effb] hover:bg-[#e0defa] transition-colors text-[12px] font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[#7065f0]"
+      >
+        <Brain className="w-3.5 h-3.5" />
+        <span className="font-bold uppercase tracking-wider">Homix Thinking</span>
+        {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+      </button>
+      
+      {isOpen && (
+        <div className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap overflow-x-auto">
+          {content}
+        </div>
+      )}
     </div>
   );
 }
@@ -172,7 +198,8 @@ export default function ConversationPageNew({
         m.streamChatMessage(
           messageText, 
           sessionIdRef.current, 
-          (event) => {
+          (event: any) => {
+            console.log('UI received event:', event);
             if (event.type === 'answer' && event.content) {
               fullText += event.content;
               
@@ -183,10 +210,31 @@ export default function ConversationPageNew({
                     : msg
                 )
               );
+            } else if (event.type === 'thinking' || event.type === 'tool_call' || event.type === 'tool_result') {
+              let eventContent = '';
+              
+              if (event.type === 'tool_call') {
+                const toolName = event.data?.name || 'tool';
+                const args = event.data?.args ? JSON.stringify(event.data.args) : '';
+                eventContent = `\n> Executing: ${toolName}(${args})`;
+              } else if (event.type === 'tool_result') {
+                const result = event.data?.preview || event.data?.result || event.content || JSON.stringify(event.data);
+                eventContent = `\n> Result: ${result}`;
+              } else {
+                eventContent = event.content || (event.data ? JSON.stringify(event.data) : '');
+              }
+              
+              console.log('Updating thinking with:', eventContent);
+              
+              setGeneralMessages(prev => 
+                prev.map(msg => 
+                  msg.id === aiMessageId 
+                    ? { ...msg, thinking: (msg.thinking || '') + eventContent } 
+                    : msg
+                )
+              );
             } else if (event.type === 'done') {
-              // Final processing if needed
-              // If the done event contains the full text or additional data, use it.
-              // Assuming 'content' in done might be the full text or we just use what we built.
+              console.log('Stream done');
             }
           },
           controller.signal
@@ -330,7 +378,7 @@ export default function ConversationPageNew({
       setCurrentView('owner');
       toast.success(`Switched to chat with ${property.owner.name}`);
     } else {
-      const ownerProperties = sampleProperties.filter(p => p.owner.id === property.owner.id);
+      const ownerProperties = sampleProperties.filter((p: Property) => p.owner.id === property.owner.id);
       
       const newChat: OwnerChat = {
         id: property.owner.id,
@@ -524,7 +572,7 @@ export default function ConversationPageNew({
         >
           {/* Messages Container */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-            {currentMessages.map((msg, idx) => (
+            {currentMessages.map((msg: Message, idx: number) => (
               <div key={msg.id} className="w-full">
                 {msg.type === 'user' ? (
                   <div className="flex justify-end">
@@ -535,15 +583,18 @@ export default function ConversationPageNew({
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    <div className="bg-[#f0effb] rounded-[12px] px-[16px] py-[12px] max-w-[80%]">
-                      <p className="text-[#110229] text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.content}</p>
-                      <p className="text-[#8f90a6] text-[10px] mt-1 font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.timestamp}</p>
-                    </div>
+                    {msg.thinking && <ThinkingBlock content={msg.thinking} />}
+                    {msg.content && (
+                      <div className="bg-[#f0effb] rounded-[12px] px-[16px] py-[12px] max-w-[80%]">
+                        <p className="text-[#110229] text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.content}</p>
+                        <p className="text-[#8f90a6] text-[10px] mt-1 font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.timestamp}</p>
+                      </div>
+                    )}
                     
                     {msg.properties && msg.properties.length > 0 && (
                       <div className={`w-full ${msg.properties.length > 2 ? 'overflow-x-auto' : ''}`}>
                         <div className={`flex gap-3 pb-2 ${msg.properties.length > 2 ? 'w-max' : 'grid grid-cols-1 md:grid-cols-2'}`}>
-                          {msg.properties.map((property) => (
+                          {msg.properties.map((property: Property) => (
                             <PropertyCard
                               key={property.id}
                               property={property}

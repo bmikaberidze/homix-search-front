@@ -151,7 +151,7 @@ export async function streamChatMessage(
     const reader = response.body.getReader()
     const decoder = new TextDecoder('utf-8')
     let buffer = ''
-
+    let currentEventType: ChatStreamEventType = 'answer'
     try {
         while (true) {
             const { done, value } = await reader.read()
@@ -166,40 +166,45 @@ export async function streamChatMessage(
             buffer = lines.pop() ?? ''
 
             for (const line of lines) {
-                if (line.trim() === '') continue
-                if (line.startsWith('data: ')) {
-                    const jsonStr = line.slice(6)
+                const trimmedLine = line.trim()
+                if (trimmedLine === '') continue
+                console.log('Raw SSE line:', trimmedLine)
+
+                if (trimmedLine.startsWith('event: ')) {
+                    currentEventType = trimmedLine.slice(
+                        7,
+                    ) as ChatStreamEventType
+                    continue
+                }
+
+                if (trimmedLine.startsWith('data: ')) {
+                    const data = trimmedLine.slice(6)
                     try {
-                        // Depending on backend implementation, data might be just the token string
-                        // or a JSON object with { type, content }.
-                        // Based on requirements:
-                        // Events: - thinking: ... - answer: ...
-                        // The SSE format usually is:
-                        // event: answer
-                        // data: "Hello"
-                        // OR key-value JSON in data.
+                        let event: ChatStreamEvent
 
-                        // Let's assume the standard `event: type \n data: content` format is NOT strictly used
-                        // but rather a JSON payload in `data:` or custom parsing.
-                        // However, the prompt description says:
-                        // Events: - thinking ... - answer ...
-                        // This implies `type` is distinguishable.
-                        // Common pattern is `data: {"type": "answer", "content": "..."}`
-
-                        const payload = JSON.parse(jsonStr)
-
-                        // Normalize payload to ChatStreamEvent
-                        const event: ChatStreamEvent = {
-                            type: payload.type || 'answer',
-                            content:
-                                payload.content ||
-                                (typeof payload === 'string' ? payload : ''),
-                            data: payload,
+                        try {
+                            const payload = JSON.parse(data)
+                            event = {
+                                type: payload.type || currentEventType,
+                                content:
+                                    payload.content ||
+                                    (typeof payload === 'string'
+                                        ? payload
+                                        : ''),
+                                data: payload,
+                            }
+                        } catch (e) {
+                            // Not JSON, treat as raw data with currentEventType
+                            event = {
+                                type: currentEventType,
+                                content: data,
+                            }
                         }
 
+                        console.log('Parsed event:', event)
                         onEvent(event)
                     } catch (e) {
-                        console.warn('Failed to parse SSE data:', line, e)
+                        console.warn('Failed to process SSE line:', line, e)
                     }
                 }
             }
