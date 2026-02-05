@@ -75,6 +75,13 @@ function TypingIndicator() {
 // Thinking Block Component
 function ThinkingBlock({ content }: { content: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [content, isOpen]);
 
   if (!content) return null;
 
@@ -90,7 +97,7 @@ function ThinkingBlock({ content }: { content: string }) {
       </button>
       
       {isOpen && (
-        <div className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap overflow-x-auto">
+        <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap overflow-y-auto max-h-[240px]">
           {content}
         </div>
       )}
@@ -210,7 +217,8 @@ export default function ConversationPageNew({
                     : msg
                 )
               );
-            } else if (event.type === 'thinking' || event.type === 'tool_call' || event.type === 'tool_result') {
+            // } else if (['thinking', 'tool_call\', 'scraping', 'tool_result'].includes(event.type)) {
+            } else if (event.type != 'done') {
               let eventContent = '';
               
               if (event.type === 'tool_call') {
@@ -220,8 +228,11 @@ export default function ConversationPageNew({
               } else if (event.type === 'tool_result') {
                 const result = event.data?.preview || event.data?.result || event.content || JSON.stringify(event.data);
                 eventContent = `\n> Result: ${result}`;
+              } else if (event.type === 'scraping') {
+                const url = event.data?.url ? JSON.stringify(event.data.url) : '';
+                eventContent = `\n> Scraping: ${url}`;
               } else {
-                eventContent = event.content || (event.data ? JSON.stringify(event.data) : '');
+                eventContent = `\n> ${event.type}: ${event.content || (event.data ? JSON.stringify(event.data) : '')}`;
               }
               
               console.log('Updating thinking with:', eventContent);
@@ -233,7 +244,7 @@ export default function ConversationPageNew({
                     : msg
                 )
               );
-            } else if (event.type === 'done') {
+            } else {
               console.log('Stream done');
             }
           },
