@@ -74,7 +74,7 @@ function TypingIndicator() {
 
 // Thinking Block Component
 function ThinkingBlock({ content }: { content: string }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,7 +97,7 @@ function ThinkingBlock({ content }: { content: string }) {
       </button>
       
       {isOpen && (
-        <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap overflow-y-auto max-h-[240px]">
+        <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap overflow-y-auto max-h-[140px]">
           {content}
         </div>
       )}

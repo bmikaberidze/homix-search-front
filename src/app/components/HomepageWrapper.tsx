@@ -17,7 +17,7 @@ interface HomepageWrapperProps {
 }
 
 export default function HomepageWrapper({ onNavigate, onViewProperty, currentUser, onOpenAuth, onSignOut }: HomepageWrapperProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('გამარჯობა, გთხოვ მომიძებნო ბინა გუდაურში ერთი დღით 100 დოლარად, აივნით და კონიაკის ჯაკუზით!');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +26,7 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
     }
   };
 
-  const featuredProperties = sampleProperties.filter(p => p.featured).slice(0, 3);
+  const featuredProperties = sampleProperties.filter((p: any) => p.featured).slice(0, 3);
 
   return (
     <div className="bg-white min-h-screen flex flex-col">

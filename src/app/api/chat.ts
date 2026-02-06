@@ -17,6 +17,7 @@ export type ChatStreamEventType =
     | 'tool_result'
     | 'done'
     | 'error'
+    | 'questions'
 
 export interface ChatStreamEvent {
     type: ChatStreamEventType
