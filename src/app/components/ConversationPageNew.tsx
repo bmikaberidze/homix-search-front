@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { Page, Message, OwnerChat, ScheduledVisit, Property } from '@/app/types';
 import { sampleProperties } from '@/app/data';
-import { getCurrentTime, matchPropertiesFromResponse } from '@/app/utils';
+import { getCurrentTime, matchPropertiesFromResponse, convertListingToProperty } from '@/app/utils';
 import { sendChatMessage } from '@/app/api/chat';
 import PropertyCard from './PropertyCard';
+import PropertyCardSkeleton from './PropertyCardSkeleton';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
 import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserData } from './AuthDialog';
 import UserMenu from './UserMenu';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ConversationPageProps {
   onNavigate: (page: Page, query?: string, property?: Property) => void;
@@ -42,8 +45,7 @@ function QuickReplies({ onReplyClick, show }: { onReplyClick: (text: string) => 
           key={reply.text}
           onClick={() => onReplyClick(reply.text)}
           style={{ backgroundColor: reply.bg, borderColor: reply.bg }}
-          className="border-[1.5px] rounded-[8px] p-4 hover:border-[#7065f0] transition-all flex flex-col items-center gap-2"
-        >
+          className="border-[1.5px] rounded-[8px] p-4 hover:border-[#7065f0] transition-all flex flex-col items-center gap-2">
           <span className="text-[24px]">{reply.emoji}</span>
           <span style={{ color: reply.color }} className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[12px]">
             {reply.text}
@@ -86,7 +88,8 @@ function ThinkingBlock({ content }: { content: string }) {
   if (!content) return null;
 
   return (
-    <div className="mb-2 w-full max-w-[80%]">
+    
+    <div className="mb-2 w-full max-w-[80%] min-w-0 overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f0effb] hover:bg-[#e0defa] transition-colors text-[12px] font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[#7065f0]"
@@ -97,10 +100,52 @@ function ThinkingBlock({ content }: { content: string }) {
       </button>
       
       {isOpen && (
-        <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap overflow-y-auto max-h-[140px]">
+        //
+        <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono px-[16px] py-[12px] overflow-y-auto overflow-x-hidden max-h-[150px] whitespace-pre-wrap break-all">
+        {/* <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap break-words overflow-y-auto max-h-[200px]"> */}
           {content}
         </div>
       )}
+    </div>
+  );
+}
+
+// Markdown Text Component using react-markdown
+function MarkdownText({ content, className = '', isUser = false }: { content: string; className?: string; isUser?: boolean }) {
+  if (!content) return null;
+
+  return (
+    <div className={`${className} prose prose-sm max-w-none`}>
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+          ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+          li: ({ children }) => (
+            <li className={`pl-1 ${isUser ? 'marker:text-white' : 'marker:text-[#7065f0]'}`}>
+              {children}
+            </li>
+          ),
+          strong: ({ children }) => (
+            <strong className={`font-bold ${isUser ? 'text-white' : 'text-[#110229]'}`}>
+              {children}
+            </strong>
+          ),
+          a: ({ href, children }) => (
+            <a 
+              href={href} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className={`${isUser ? 'text-white underline' : 'text-[#7065f0] hover:underline'}`}
+            >
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }
@@ -121,12 +166,12 @@ export default function ConversationPageNew({
   // STATE (AgroHub Pattern)
   const [currentView, setCurrentView] = useState<'general' | 'owner'>('general');
   const [generalMessages, setGeneralMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'ai',
-      content: "Hello! 👋 I'm Homix AI. I help you find, sell, or rent properties. What are you looking for today?",
-      timestamp: getCurrentTime(),
-    }
+    // {
+    //   id: '1',
+    //   type: 'ai',
+    //   content: "Hello! 👋 I'm Homix AI. I help you find, sell, or rent properties. What are you looking for today?",
+    //   timestamp: getCurrentTime(),
+    // }
   ]);
   const [activeOwnerChat, setActiveOwnerChat] = useState<OwnerChat | null>(null);
   const [inputValue, setInputValue] = useState('');
@@ -194,7 +239,7 @@ export default function ConversationPageNew({
       content: '', // Start empty
       timestamp: startTime,
     };
-    
+
     setGeneralMessages(prev => [...prev, initialAiMessage]);
     setIsTyping(true);
 
@@ -206,46 +251,104 @@ export default function ConversationPageNew({
           messageText, 
           sessionIdRef.current, 
           (event: any) => {
-            console.log('UI received event:', event);
-            if (event.type === 'answer' && event.content) {
+            console.log('🎯 UI received event:', event.type, event);
+
+            // Normalize event type to handle potential whitespace issues
+            const eventType = typeof event.type === 'string' ? event.type.trim() : event.type;
+
+            // Debug: Check event type details
+            if (event.type && typeof event.type === 'string') {
+              console.log('🔍 Event type details:', {
+                original: event.type,
+                normalized: eventType,
+                length: event.type.length,
+                match: eventType === 'show_suggestions_placeholder'
+              });
+            }
+
+            if (eventType === 'answer' && event.content) {
               fullText += event.content;
-              
-              setGeneralMessages(prev => 
-                prev.map(msg => 
-                  msg.id === aiMessageId 
-                    ? { ...msg, content: fullText } 
+
+              setGeneralMessages(prev =>
+                prev.map(msg =>
+                  msg.id === aiMessageId
+                    ? { ...msg, content: fullText }
                     : msg
                 )
               );
-            // } else if (['thinking', 'tool_call\', 'scraping', 'tool_result'].includes(event.type)) {
-            } else if (event.type != 'done') {
+            } else if (eventType === 'show_suggestions_placeholder') {
+              // Mark the message to show placeholder cards
+              console.log('✅ Matched show_suggestions_placeholder! Setting placeholders for message:', aiMessageId);
+              setGeneralMessages(prev => {
+                const updated = prev.map(msg =>
+                  msg.id === aiMessageId
+                    ? { ...msg, showPlaceholders: true }
+                    : msg
+                );
+                console.log('📦 Messages after placeholder update:', updated.find(m => m.id === aiMessageId));
+                return updated;
+              });
+            } else if (eventType === 'suggestions') {
+              // Parse suggestions from event.data
+              console.log('🏠 Received suggestions event:', event.data);
+              const suggestionsData = Array.isArray(event.data)
+                ? event.data
+                : event.data?.suggestions || [];
+
+              console.log('🏠 Parsing suggestions data:', suggestionsData);
+
+              // Convert Listing objects to Property objects
+              const properties = suggestionsData
+                .map((listing: any, index: number) =>
+                  convertListingToProperty(listing, index)
+                );
+
+              console.log('🏠 Converted to properties:', properties);
+
+              // Replace placeholders with real properties
+              setGeneralMessages(prev =>
+                prev.map(msg =>
+                  msg.id === aiMessageId
+                    ? { ...msg, properties, showPlaceholders: false }
+                    : msg
+                )
+              );
+            } else if (!['done', 'show_suggestions_placeholder', 'suggestions'].includes(eventType)) {
+              // Handle other events in thinking block
               let eventContent = '';
-              
-              if (event.type === 'tool_call') {
+
+              if (eventType === 'tool_call') {
                 const toolName = event.data?.name || 'tool';
                 const args = event.data?.args ? JSON.stringify(event.data.args) : '';
                 eventContent = `\n> Executing: ${toolName}(${args})`;
-              } else if (event.type === 'tool_result') {
+              } else if (eventType === 'tool_result') {
                 const result = event.data?.preview || event.data?.result || event.content || JSON.stringify(event.data);
                 eventContent = `\n> Result: ${result}`;
-              } else if (event.type === 'scraping') {
+              } else if (eventType === 'scraping') {
                 const url = event.data?.url ? JSON.stringify(event.data.url) : '';
                 eventContent = `\n> Scraping: ${url}`;
               } else {
-                eventContent = `\n> ${event.type}: ${event.content || (event.data ? JSON.stringify(event.data) : '')}`;
+                eventContent = `\n> ${eventType}: ${event.content || (event.data ? JSON.stringify(event.data) : '')}`;
               }
-              
-              console.log('Updating thinking with:', eventContent);
-              
-              setGeneralMessages(prev => 
-                prev.map(msg => 
-                  msg.id === aiMessageId 
-                    ? { ...msg, thinking: (msg.thinking || '') + eventContent } 
+
+              setGeneralMessages(prev =>
+                prev.map(msg =>
+                  msg.id === aiMessageId
+                    ? { ...msg, thinking: (msg.thinking || '') + eventContent }
                     : msg
                 )
               );
+            } else if (eventType === 'done') {
+                setGeneralMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === aiMessageId
+                      ? { ...msg, showPlaceholders: false }
+                      : msg
+                  )
+                );
+                console.log('✅ Stream completed');
             } else {
-              console.log('Stream done');
+              console.log('⚠️ Unhandled event type:', eventType, event);
             }
           },
           controller.signal
@@ -588,7 +691,11 @@ export default function ConversationPageNew({
                 {msg.type === 'user' ? (
                   <div className="flex justify-end">
                     <div className="bg-[#7065f0] rounded-[12px] px-[16px] py-[12px] max-w-[80%]">
-                      <p className="text-white text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.content}</p>
+                      <MarkdownText 
+                        content={msg.content} 
+                        isUser={true}
+                        className="text-white text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]" 
+                      />
                       <p className="text-white/70 text-[10px] mt-1 font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.timestamp}</p>
                     </div>
                   </div>
@@ -597,12 +704,27 @@ export default function ConversationPageNew({
                     {msg.thinking && <ThinkingBlock content={msg.thinking} />}
                     {msg.content && (
                       <div className="bg-[#f0effb] rounded-[12px] px-[16px] py-[12px] max-w-[80%]">
-                        <p className="text-[#110229] text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.content}</p>
+                        <MarkdownText 
+                          content={msg.content} 
+                          className="text-[#110229] text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]" 
+                        />
                         <p className="text-[#8f90a6] text-[10px] mt-1 font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.timestamp}</p>
                       </div>
                     )}
-                    
-                    {msg.properties && msg.properties.length > 0 && (
+
+                    {/* Show placeholder cards while loading */}
+                    {msg.showPlaceholders && (
+                      <div className="w-full overflow-x-auto">
+                        <div className="flex gap-3 pb-2">
+                          {[1, 2, 3].map((i) => (
+                            <PropertyCardSkeleton key={`placeholder-${i}`} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show real property cards when available */}
+                    {msg.properties && msg.properties.length > 0 && !msg.showPlaceholders && (
                       <div className={`w-full ${msg.properties.length > 2 ? 'overflow-x-auto' : ''}`}>
                         <div className={`flex gap-3 pb-2 ${msg.properties.length > 2 ? 'w-max' : 'grid grid-cols-1 md:grid-cols-2'}`}>
                           {msg.properties.map((property: Property) => (

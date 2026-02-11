@@ -19,10 +19,21 @@ export default function PropertyCard({
   onScheduleViewing,
   onClick
 }: PropertyCardProps) {
+  // Determine click behavior: external URL vs internal navigation
+  const handleCardClick = () => {
+    if (property.url) {
+      // External listing - open in new tab
+      window.open(property.url, '_blank', 'noopener,noreferrer');
+    } else if (onClick) {
+      // Internal property - call onClick handler
+      onClick();
+    }
+  };
+
   // Compact chat version
   if (inChat) {
     return (
-      <div className="w-[280px] bg-white rounded-[8px] border-[1.5px] border-[#f0effb] hover:border-[#7065f0] transition-colors cursor-pointer" onClick={onClick}>
+      <div className="w-[280px] bg-white rounded-[8px] border-[1.5px] border-[#f0effb] hover:border-[#7065f0] transition-colors cursor-pointer" onClick={handleCardClick}>
         {/* Property Image - Featured Image */}
         <div className="h-[140px] rounded-t-[8px] relative overflow-hidden">
           <ImageWithFallback 
@@ -117,7 +128,7 @@ export default function PropertyCard({
   
   // Full homepage version - simplified placeholder
   return (
-    <div className="bg-white rounded-[12px] border-[1.5px] border-[#f0effb] hover:border-[#7065f0] transition-colors cursor-pointer p-4" onClick={onClick}>
+    <div className="bg-white rounded-[12px] border-[1.5px] border-[#f0effb] hover:border-[#7065f0] transition-colors cursor-pointer p-4" onClick={handleCardClick}>
       <div className="h-[200px] bg-gradient-to-br from-[#7065f0] to-[#5048c7] rounded-[8px] mb-4" />
       <h3 className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[18px] text-[#110229]">{property.title}</h3>
       <p className="text-[14px] text-[#8f90a6] mt-1 font-['Plus_Jakarta_Sans:Medium',sans-serif]">{property.address}</p>

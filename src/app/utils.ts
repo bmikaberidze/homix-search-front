@@ -1,6 +1,66 @@
 import { Property } from './types';
 import { sampleProperties } from './data';
 
+// Backend Listing type based on API schema
+interface Listing {
+  title?: string;
+  description?: string;
+  price?: number;
+  currency?: string;
+  rooms?: number;
+  area_sqm?: number;
+  city?: string;
+  district?: string;
+  url: string;
+  images?: string[];
+  posted_at?: string;
+  source?: string;
+  score?: number;
+  reasons?: string[];
+}
+
+// Convert backend Listing to frontend Property
+export function convertListingToProperty(listing: Listing, index: number): Property {
+  // Generate a unique ID from URL or index
+  const id = listing.url ?
+    `suggestion-${listing.url.split('/').pop() || index}` :
+    `suggestion-${index}`;
+
+  // Create address from city and district
+  const address = [listing.district, listing.city]
+    .filter(Boolean)
+    .join(', ') || 'Location not specified';
+
+  // Format area with unit
+  const size = listing.area_sqm ? `${listing.area_sqm} sqm` : 'N/A';
+
+  // Create a generic owner (since Listing doesn't have owner info)
+  const owner = {
+    id: `owner-${id}`,
+    name: listing.source || 'Property Agent',
+    type: 'broker' as const,
+    tier: 'professional' as const,
+    responseTime: '< 1 hour'
+  };
+
+  return {
+    id,
+    title: listing.title || 'Property Listing',
+    address,
+    price: listing.price || 0,
+    priceType: 'sale', // Default to sale, could be inferred from price range
+    beds: listing.rooms || 0,
+    baths: Math.max(1, Math.floor((listing.rooms || 0) / 2)), // Estimate baths
+    size,
+    images: listing.images || [],
+    description: listing.description,
+    url: listing.url,  // Include the external URL
+    owner,
+    featured: (listing.score || 0) > 0.8, // Mark high-scoring as featured
+    popular: (listing.score || 0) > 0.6,  // Mark medium-scoring as popular
+  };
+}
+
 // Timestamp helper
 export function getCurrentTime() {
   const now = new Date();

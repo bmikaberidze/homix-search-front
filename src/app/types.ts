@@ -12,6 +12,7 @@ export interface Property {
     images?: string[]
     description?: string
     amenities?: string[]
+    url?: string
     owner: {
         id: string
         name: string
@@ -28,6 +29,7 @@ export interface Message {
     timestamp: string
     properties?: Property[]
     thinking?: string
+    showPlaceholders?: boolean
 }
 
 export interface OwnerChat {

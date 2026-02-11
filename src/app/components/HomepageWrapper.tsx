@@ -17,12 +17,12 @@ interface HomepageWrapperProps {
 }
 
 export default function HomepageWrapper({ onNavigate, onViewProperty, currentUser, onOpenAuth, onSignOut }: HomepageWrapperProps) {
-  const [searchQuery, setSearchQuery] = useState('გამარჯობა, გთხოვ მომიძებნო ბინა გუდაურში ერთი დღით 100 დოლარად, აივნით და კონიაკის ჯაკუზით!');
+  const [searchQuery, setSearchQuery] = useState('გამარჯობა, გთხოვ მომიძებნო ბინა თბილისში, ერთი დღით 100 ლარად, აივნით!');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      onNavigate('conversation', searchQuery);
+      onNavigate('conversation', searchQuery);  
     }
   };
 

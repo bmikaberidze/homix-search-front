@@ -17,7 +17,8 @@ export type ChatStreamEventType =
     | 'tool_result'
     | 'done'
     | 'error'
-    | 'questions'
+    | 'show_suggestions_placeholder'
+    | 'suggestions'
 
 export interface ChatStreamEvent {
     type: ChatStreamEventType
@@ -90,8 +91,8 @@ export async function sendChatMessage(
         signal,
     })
 
-    console.log('Chat API request:', { sessionId, message })
-    console.log('Chat API response:', response)
+    // console.log('Chat API request:', { sessionId, message })
+    // console.log('Chat API response:', response)
 
     if (!response.ok) {
         throw new Error(`Chat API request failed (${response.status})`)
@@ -126,7 +127,7 @@ export async function streamChatMessage(
 ): Promise<void> {
     const url = resolveChatStreamApiUrl()
 
-    console.log('Starting stream to:', url)
+    // console.log('Starting stream to:', url)
 
     const response = await fetch(url, {
         method: 'POST',
@@ -169,12 +170,13 @@ export async function streamChatMessage(
             for (const line of lines) {
                 const trimmedLine = line.trim()
                 if (trimmedLine === '') continue
-                console.log('Raw SSE line:', trimmedLine)
+                console.log('🔍 Raw SSE line:', trimmedLine)
 
                 if (trimmedLine.startsWith('event: ')) {
-                    currentEventType = trimmedLine.slice(
-                        7,
-                    ) as ChatStreamEventType
+                    currentEventType = trimmedLine
+                        .slice(7)
+                        .trim() as ChatStreamEventType
+                    console.log('📌 Event type set to:', currentEventType)
                     continue
                 }
 
@@ -185,8 +187,15 @@ export async function streamChatMessage(
 
                         try {
                             const payload = JSON.parse(data)
+                            const eventType =
+                                payload.type ||
+                                payload.event ||
+                                currentEventType
                             event = {
-                                type: payload.type || currentEventType,
+                                type:
+                                    typeof eventType === 'string'
+                                        ? eventType.trim()
+                                        : eventType,
                                 content:
                                     payload.content ||
                                     (typeof payload === 'string'
@@ -194,15 +203,21 @@ export async function streamChatMessage(
                                         : ''),
                                 data: payload,
                             }
+                            console.log(
+                                '📦 Parsed JSON event:',
+                                event.type,
+                                payload,
+                            )
                         } catch (e) {
                             // Not JSON, treat as raw data with currentEventType
                             event = {
                                 type: currentEventType,
                                 content: data,
                             }
+                            console.log('📝 Parsed raw text event:', event.type)
                         }
 
-                        console.log('Parsed event:', event)
+                        console.log('✅ Emitting event:', event)
                         onEvent(event)
                     } catch (e) {
                         console.warn('Failed to process SSE line:', line, e)
