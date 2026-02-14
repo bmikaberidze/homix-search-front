@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, Message, OwnerChat, ScheduledVisit, Property } from '@/app/types';
 import { sampleProperties } from '@/app/data';
 import { getCurrentTime, matchPropertiesFromResponse, convertListingToProperty } from '@/app/utils';
-import { sendChatMessage } from '@/app/api/chat';
+import { startSession } from '@/app/api/chat';
 import PropertyCard from './PropertyCard';
 import PropertyCardSkeleton from './PropertyCardSkeleton';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
@@ -182,12 +182,51 @@ export default function ConversationPageNew({
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasInitialized = useRef(false);
-  const sessionIdRef = useRef<string>('');
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionPromiseRef = useRef<Promise<string> | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
 
+  const ensureSession = useCallback(async (): Promise<string> => {
+    if (sessionIdRef.current) return sessionIdRef.current;
+
+    const saved = localStorage.getItem('homix_chat_session_id');
+    if (saved && saved !== 'default') {
+      sessionIdRef.current = saved;
+      return saved;
+    }
+
+    if (sessionPromiseRef.current) return sessionPromiseRef.current;
+
+    const promise = (async () => {
+      try {
+        const id = await startSession();
+        sessionIdRef.current = id;
+        localStorage.setItem('homix_chat_session_id', id);
+        return id;
+      } catch {
+        try {
+          await new Promise(r => setTimeout(r, 1000));
+          const id = await startSession();
+          sessionIdRef.current = id;
+          localStorage.setItem('homix_chat_session_id', id);
+          return id;
+        } catch {
+          const fallback = `local-${crypto.randomUUID()}`;
+          sessionIdRef.current = fallback;
+          toast.warning('Could not connect to server. Your conversation may not be saved.');
+          return fallback;
+        }
+      } finally {
+        sessionPromiseRef.current = null;
+      }
+    })();
+
+    sessionPromiseRef.current = promise;
+    return promise;
+  }, []);
+
   useEffect(() => {
-    sessionIdRef.current = 'default';
-    localStorage.setItem('homix_chat_session_id', 'default');
+    ensureSession();
   }, []);
 
   useEffect(() => {
@@ -246,10 +285,12 @@ export default function ConversationPageNew({
     let fullText = '';
 
     try {
-      await import('@/app/api/chat').then(m => 
+      const currentSessionId = await ensureSession();
+
+      await import('@/app/api/chat').then(m =>
         m.streamChatMessage(
-          messageText, 
-          sessionIdRef.current, 
+          messageText,
+          currentSessionId,
           (event: any) => {
             console.log('🎯 UI received event:', event.type, event);
 

@@ -117,6 +117,29 @@ export async function sendChatMessage(
     return { text, raw: data }
 }
 
+// -- SESSION MANAGEMENT --
+
+export async function startSession(signal?: AbortSignal): Promise<string> {
+    const baseUrl = resolveChatApiUrl()
+    const url = baseUrl.replace(/\/chat\/?$/, '/start_session')
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+        },
+        signal,
+    })
+
+    if (!response.ok) {
+        throw new Error(`Start session failed (${response.status})`)
+    }
+
+    const data = (await response.json()) as { session_id: string }
+    return data.session_id
+}
+
 // -- STREAMING IMPLEMENTATION --
 
 export async function streamChatMessage(
