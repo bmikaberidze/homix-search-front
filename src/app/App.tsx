@@ -88,6 +88,7 @@ export default function App() {
   const handleSignOut = () => {
     localStorage.removeItem('homix_current_user');
     localStorage.removeItem('homix_chat_session_id');
+    localStorage.removeItem('homix_conversation_id');
     setCurrentUser(null);
     toast.success('Signed out successfully');
   };

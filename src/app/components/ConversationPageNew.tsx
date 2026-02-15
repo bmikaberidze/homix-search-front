@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, Message, OwnerChat, ScheduledVisit, Property } from '@/app/types';
 import { sampleProperties } from '@/app/data';
 import { getCurrentTime, matchPropertiesFromResponse, convertListingToProperty } from '@/app/utils';
-import { startSession } from '@/app/api/chat';
+import { startSession, SessionNotFoundError } from '@/app/api/chat';
 import PropertyCard from './PropertyCard';
 import PropertyCardSkeleton from './PropertyCardSkeleton';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
-import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserData } from './AuthDialog';
 import UserMenu from './UserMenu';
@@ -184,6 +184,7 @@ export default function ConversationPageNew({
   const hasInitialized = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
   const sessionPromiseRef = useRef<Promise<string> | null>(null);
+  const conversationIdRef = useRef<string | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
 
   const ensureSession = useCallback(async (): Promise<string> => {
@@ -225,8 +226,53 @@ export default function ConversationPageNew({
     return promise;
   }, []);
 
+  const ensureConversationId = useCallback((): string => {
+    if (conversationIdRef.current) return conversationIdRef.current;
+
+    const saved = localStorage.getItem('homix_conversation_id');
+    if (saved) {
+      conversationIdRef.current = saved;
+      return saved;
+    }
+
+    const id = crypto.randomUUID();
+    conversationIdRef.current = id;
+    localStorage.setItem('homix_conversation_id', id);
+    return id;
+  }, []);
+
+  const resetSession = useCallback(async (): Promise<string> => {
+    // Clear old session state
+    sessionIdRef.current = null;
+    sessionPromiseRef.current = null;
+    localStorage.removeItem('homix_chat_session_id');
+
+    // Clear conversation
+    const newConvId = crypto.randomUUID();
+    conversationIdRef.current = newConvId;
+    localStorage.setItem('homix_conversation_id', newConvId);
+
+    // Start fresh session
+    const newSessionId = await startSession();
+    sessionIdRef.current = newSessionId;
+    localStorage.setItem('homix_chat_session_id', newSessionId);
+    return newSessionId;
+  }, []);
+
+  const handleClearConversation = useCallback(() => {
+    const id = crypto.randomUUID();
+    conversationIdRef.current = id;
+    localStorage.setItem('homix_conversation_id', id);
+    setGeneralMessages([]);
+    setShowQuickReplies(true);
+    setCurrentView('general');
+    setActiveOwnerChat(null);
+    toast.success('Conversation cleared');
+  }, []);
+
   useEffect(() => {
     ensureSession();
+    ensureConversationId();
   }, []);
 
   useEffect(() => {
@@ -286,11 +332,13 @@ export default function ConversationPageNew({
 
     try {
       const currentSessionId = await ensureSession();
+      const currentConversationId = ensureConversationId();
 
       await import('@/app/api/chat').then(m =>
         m.streamChatMessage(
           messageText,
           currentSessionId,
+          currentConversationId,
           (event: any) => {
             console.log('🎯 UI received event:', event.type, event);
 
@@ -413,6 +461,29 @@ export default function ConversationPageNew({
         return;
       }
 
+      // Session expired or not found — start fresh and retry
+      if (error instanceof SessionNotFoundError) {
+        console.warn('Session not found, resetting session and retrying...');
+        toast.info('Session expired. Starting a new conversation...');
+        // Keep only the user message that triggered this request
+        setGeneralMessages(prev => {
+          const userMsg = [...prev].reverse().find(msg => msg.type === 'user');
+          return userMsg ? [userMsg] : [];
+        });
+        setShowQuickReplies(false);
+        try {
+          await resetSession();
+          setIsTyping(false);
+          // Retry the same message with the new session
+          await processAIResponse(messageText);
+          return;
+        } catch (retryError) {
+          console.error('Failed to recover from session_not_found:', retryError);
+          toast.error('Could not reconnect. Please try again.');
+          return;
+        }
+      }
+
       console.error('Chat API error:', error);
       toast.error('Chat service is unavailable. Showing fallback results.');
 
@@ -420,11 +491,11 @@ export default function ConversationPageNew({
       // Or update the existing one with fallback text
       const properties = matchPropertiesFromResponse('', messageText);
       const fallbackContent = properties.length > 0 ? 'Here are some properties I found:' : 'Let me help you find properties. What are you looking for?';
-      
-      setGeneralMessages(prev => 
-        prev.map(msg => 
-          msg.id === aiMessageId 
-            ? { ...msg, content: fallbackContent, properties: properties.length > 0 ? properties : undefined } 
+
+      setGeneralMessages(prev =>
+        prev.map(msg =>
+          msg.id === aiMessageId
+            ? { ...msg, content: fallbackContent, properties: properties.length > 0 ? properties : undefined }
             : msg
         )
       );
@@ -626,10 +697,18 @@ export default function ConversationPageNew({
         {/* LEFT SIDEBAR - Only shows when ownerChats exist */}
         {showSidebar && (
           <div className="w-[262px] border-r border-[#f0effb] flex flex-col bg-white" style={{ transition: 'all 0.3s ease' }}>
-            <div className="p-4 border-b border-[#f0effb]">
+            <div className="p-4 border-b border-[#f0effb] flex items-center justify-between">
               <h2 className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[18px] text-[#110229]">
                 Conversations
               </h2>
+              <button
+                onClick={handleClearConversation}
+                title="Clear conversation"
+                className="w-7 h-7 rounded-full hover:bg-red-50 flex items-center justify-center transition-colors group"
+                aria-label="Clear conversation"
+              >
+                <Trash2 className="w-4 h-4 text-[#8f90a6] group-hover:text-red-500 transition-colors" />
+              </button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-2">

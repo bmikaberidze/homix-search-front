@@ -1,7 +1,15 @@
 const DEFAULT_CHAT_API_URL = '/api/chat'
 
+export class SessionNotFoundError extends Error {
+    constructor(message?: string) {
+        super(message ?? 'Session not found');
+        this.name = 'SessionNotFoundError';
+    }
+}
+
 type ChatApiPayload = {
     session_id: string
+    conversation_id: string
     message: string
 }
 
@@ -67,6 +75,7 @@ const extractResponseText = (data: Record<string, unknown>): string | null => {
 export async function sendChatMessage(
     message: string,
     sessionId: string,
+    conversationId: string,
     signal?: AbortSignal,
 ): Promise<ChatApiResult> {
     const env = (import.meta as { env?: Record<string, string> }).env
@@ -86,13 +95,11 @@ export async function sendChatMessage(
         },
         body: JSON.stringify({
             session_id: sessionId,
+            conversation_id: conversationId,
             message,
         } satisfies ChatApiPayload),
         signal,
     })
-
-    // console.log('Chat API request:', { sessionId, message })
-    // console.log('Chat API response:', response)
 
     if (!response.ok) {
         throw new Error(`Chat API request failed (${response.status})`)
@@ -145,6 +152,7 @@ export async function startSession(signal?: AbortSignal): Promise<string> {
 export async function streamChatMessage(
     message: string,
     sessionId: string,
+    conversationId: string,
     onEvent: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
 ): Promise<void> {
@@ -160,12 +168,26 @@ export async function streamChatMessage(
         },
         body: JSON.stringify({
             session_id: sessionId,
+            conversation_id: conversationId,
             message,
         } satisfies ChatApiPayload),
         signal,
     })
 
     if (!response.ok) {
+        // Try to parse response body for session_not_found error
+        try {
+            const errorData = (await response.json()) as Record<string, unknown>
+            if (errorData.code === 'session_not_found') {
+                throw new SessionNotFoundError(
+                    typeof errorData.error === 'string'
+                        ? errorData.error
+                        : undefined,
+                )
+            }
+        } catch (e) {
+            if (e instanceof SessionNotFoundError) throw e
+        }
         throw new Error(`Chat stream request failed (${response.status})`)
     }
 
@@ -210,6 +232,16 @@ export async function streamChatMessage(
 
                         try {
                             const payload = JSON.parse(data)
+
+                            // Check for session_not_found in any parsed payload
+                            if (payload.code === 'session_not_found') {
+                                throw new SessionNotFoundError(
+                                    typeof payload.error === 'string'
+                                        ? payload.error
+                                        : undefined,
+                                )
+                            }
+
                             const eventType =
                                 payload.type ||
                                 payload.event ||
@@ -243,6 +275,7 @@ export async function streamChatMessage(
                         console.log('✅ Emitting event:', event)
                         onEvent(event)
                     } catch (e) {
+                        if (e instanceof SessionNotFoundError) throw e
                         console.warn('Failed to process SSE line:', line, e)
                     }
                 }
