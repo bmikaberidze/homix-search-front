@@ -6,6 +6,8 @@ import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { UserData } from './AuthDialog';
 import UserMenu from './UserMenu';
 import { Button } from './ui/button';
+import { Toaster } from './ui/sonner';
+import { toast } from 'sonner';
 import Footer from './Footer';
 
 interface HomepageWrapperProps {
@@ -48,7 +50,8 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
             <UserMenu user={currentUser} onSignOut={onSignOut} onNavigate={onNavigate} />
           ) : (
             <button
-              onClick={() => onNavigate('signin')}
+              // onClick={() => onNavigate('signin')}
+              onClick={() => toast.error('Get Started is not available yet. Please use guest mode by searching below.')}
               className="bg-[#7065f0] text-white hover:bg-[#5048c7] rounded-[6px] px-6 py-2 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] uppercase transition-colors"
             >
               Get Started
@@ -87,19 +90,19 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
           {/* Quick Action Buttons */}
           <div className="flex gap-4 justify-center mt-8 flex-wrap">
             <button
-              onClick={() => onNavigate('conversation', 'I want to buy property')}
+              onClick={() => onNavigate('conversation', 'გამარჯობა, გთხოვთ დამეხმაროთ ბინის შეძენაში!')}
               className="bg-[#f0effb] border-[1.5px] border-[#f0effb] text-[#7065f0] rounded-[8px] px-6 py-3 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:border-[#7065f0] transition-colors uppercase"
             >
               🏠 Buy Property
             </button>
             <button
-              onClick={() => onNavigate('conversation', 'I want to sell property')}
+              onClick={() => onNavigate('conversation', 'გამარჯობა, გთხოვთ დამეხმაროთ ბინის გაყიდვაში!')}
               className="bg-[#E8F5E9] border-[1.5px] border-[#E8F5E9] text-[#2E7D32] rounded-[8px] px-6 py-3 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:border-[#2E7D32] transition-colors uppercase"
             >
               💰 Sell Property
             </button>
             <button
-              onClick={() => onNavigate('conversation', 'I want to rent property')}
+              onClick={() => onNavigate('conversation', 'გამარჯობა, მინდა დავიქირავო ბინა, გთხოვთ დამეხმაროთ!')}
               className="bg-[#FEF3C7] border-[1.5px] border-[#FEF3C7] text-[#D97706] rounded-[8px] px-6 py-3 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:border-[#D97706] transition-colors uppercase"
             >
               🔑 Rent Property

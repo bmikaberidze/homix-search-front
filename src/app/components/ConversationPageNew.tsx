@@ -597,6 +597,10 @@ export default function ConversationPageNew({
 
   // Connect to Owner Handler (KEY FUNCTION)
   const handleChatWithOwner = (property: Property) => {
+    // Deactivate for MVP
+    toast.error('Chat with owner is not available yet. Please use general chat.');
+    return;
+
     const existingChat = ownerChats.find(chat => chat.owner.id === property.owner.id);
 
     if (existingChat) {

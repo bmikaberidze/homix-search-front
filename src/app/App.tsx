@@ -49,6 +49,11 @@ export default function App() {
   }, []);
 
   const handleNavigate = (page: Page, query?: string, property?: Property) => {
+    if (page === 'signin' || page === 'signup') {
+      toast.error(`${page === 'signin' ? 'Sign In' : 'Sign Up'} is not available yet. Please use guest mode.`);
+      return;
+    }
+
     if (query) {
       setInitialQuery(query);
     } else {
@@ -73,6 +78,8 @@ export default function App() {
   };
 
   const handleViewProperty = (propertyId: string) => {
+    toast.error(`Viewing property is not available yet.`);
+    return;
     setSelectedPropertyId(propertyId);
     setCurrentPage('property');
   };
@@ -94,6 +101,8 @@ export default function App() {
   };
 
   const handleOpenAuth = (mode: 'signin' | 'signup', plan?: string) => {
+    toast.error(`${mode === 'signin' ? 'Sign In' : 'Sign Up'} is not available yet. Please use guest mode.`);
+    return;
     // If using pages, navigate instead of dialog
     if (mode === 'signin') {
       setCurrentPage('signin');

@@ -189,7 +189,8 @@ export default function ProductsPage({ onNavigate, currentUser, onOpenAuth, onSi
           </p>
           <Button
             onClick={() => onNavigate('conversation')}
-            className="bg-white text-[#7065f0] hover:bg-white/90 h-[56px] px-8"
+            // className="bg-white text-[Black] hover:bg-white/90 h-[56px] px-8"
+            className="flex gap-4 justify-center"
           >
             <span className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px]">
               Talk to AI Assistant
