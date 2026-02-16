@@ -1,18 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { User, LogOut, Settings, Heart, MessageCircle } from 'lucide-react';
 import { UserData } from './AuthDialog';
+import { Page } from '../types';
 
 interface UserMenuProps {
   user?: UserData | null;
   currentUser?: UserData | null;
   onOpenAuth?: (mode: 'signin' | 'signup') => void;
   onSignOut: () => void;
-  onNavigate?: (page: string) => void;
+  onNavigate?: (page: Page) => void;
 }
 
 export default function UserMenu({ user, currentUser, onOpenAuth, onSignOut, onNavigate }: UserMenuProps) {
   const activeUser = user || currentUser;
-  
+
   // If no user and onOpenAuth is provided, show sign in button
   if (!activeUser && onOpenAuth) {
     return (
@@ -24,9 +25,9 @@ export default function UserMenu({ user, currentUser, onOpenAuth, onSignOut, onN
       </button>
     );
   }
-  
+
   if (!activeUser) return null;
-  
+
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

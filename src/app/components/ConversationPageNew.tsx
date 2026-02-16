@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Page, Message, OwnerChat, ScheduledVisit, Property } from '@/app/types';
-import { sampleProperties } from '@/app/data';
-import { getCurrentTime, matchPropertiesFromResponse, convertListingToProperty } from '@/app/utils';
-import { startSession, SessionNotFoundError } from '@/app/api/chat';
+import { Page, Message, OwnerChat, ScheduledVisit, Property } from '../types';
+import { sampleProperties } from '../data';
+import { getCurrentTime, matchPropertiesFromResponse, convertListingToProperty } from '../utils';
+import { startSession, SessionNotFoundError } from '../api/chat';
 import PropertyCard from './PropertyCard';
 import PropertyCardSkeleton from './PropertyCardSkeleton';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
-import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserData } from './AuthDialog';
 import UserMenu from './UserMenu';
@@ -88,7 +88,7 @@ function ThinkingBlock({ content }: { content: string }) {
   if (!content) return null;
 
   return (
-    
+
     <div className="mb-2 w-full max-w-[80%] min-w-0 overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -98,11 +98,11 @@ function ThinkingBlock({ content }: { content: string }) {
         <span className="font-bold uppercase tracking-wider">Homix Thinking</span>
         {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
       </button>
-      
+
       {isOpen && (
         //
         <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono px-[16px] py-[12px] overflow-y-auto overflow-x-hidden max-h-[150px] whitespace-pre-wrap break-all">
-        {/* <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap break-words overflow-y-auto max-h-[200px]"> */}
+          {/* <div ref={scrollRef} className="mt-2 p-3 rounded-[12px] bg-[#f8f7ff] border border-[#f0effb] text-[12px] text-[#8f90a6] font-mono whitespace-pre-wrap break-words overflow-y-auto max-h-[200px]"> */}
           {content}
         </div>
       )}
@@ -116,7 +116,7 @@ function MarkdownText({ content, className = '', isUser = false }: { content: st
 
   return (
     <div className={`${className} prose prose-sm max-w-none`}>
-      <ReactMarkdown 
+      <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
@@ -133,10 +133,10 @@ function MarkdownText({ content, className = '', isUser = false }: { content: st
             </strong>
           ),
           a: ({ href, children }) => (
-            <a 
-              href={href} 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`${isUser ? 'text-white underline' : 'text-[#7065f0] hover:underline'}`}
             >
               {children}
@@ -179,7 +179,8 @@ export default function ConversationPageNew({
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  
+  const [activeFilters, setActiveFilters] = useState<{ label: string, value: string }[]>([]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasInitialized = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
@@ -428,14 +429,14 @@ export default function ConversationPageNew({
                 )
               );
             } else if (eventType === 'done') {
-                setGeneralMessages(prev =>
-                  prev.map(msg =>
-                    msg.id === aiMessageId
-                      ? { ...msg, showPlaceholders: false }
-                      : msg
-                  )
-                );
-                console.log('✅ Stream completed');
+              setGeneralMessages(prev =>
+                prev.map(msg =>
+                  msg.id === aiMessageId
+                    ? { ...msg, showPlaceholders: false }
+                    : msg
+                )
+              );
+              console.log('✅ Stream completed');
             } else {
               console.log('⚠️ Unhandled event type:', eventType, event);
             }
@@ -443,18 +444,30 @@ export default function ConversationPageNew({
           controller.signal
         )
       );
-      
+
       // After stream is done, match properties
       const properties = matchPropertiesFromResponse(fullText, messageText);
       if (properties.length > 0) {
-        setGeneralMessages(prev => 
-          prev.map(msg => 
-            msg.id === aiMessageId 
-              ? { ...msg, properties } 
+        setGeneralMessages(prev =>
+          prev.map(msg =>
+            msg.id === aiMessageId
+              ? { ...msg, properties }
               : msg
           )
         );
       }
+
+      // Extract filters from AI response or thinking
+      if (messageText.toLowerCase().includes('new york')) {
+        setActiveFilters(prev => [...prev.filter(f => f.label !== 'Location'), { label: 'Location', value: 'New York' }]);
+      } else if (messageText.toLowerCase().includes('tbilisi')) {
+        setActiveFilters(prev => [...prev.filter(f => f.label !== 'Location'), { label: 'Location', value: 'Tbilisi' }]);
+      }
+
+      if (messageText.toLowerCase().includes('100') || messageText.toLowerCase().includes('price')) {
+        setActiveFilters(prev => [...prev.filter(f => f.label !== 'Budget'), { label: 'Budget', value: 'Under 3000' }]);
+      }
+
 
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
@@ -525,7 +538,7 @@ export default function ConversationPageNew({
       setGeneralMessages(prev => [...prev, userMessage]);
       setInputValue('');
       setIsTyping(true);
-      
+
       await processAIResponse(messageText);
     } else if (activeOwnerChat) {
       // OWNER CHAT
@@ -535,21 +548,21 @@ export default function ConversationPageNew({
         lastMessage: messageText,
       };
       setActiveOwnerChat(updatedChat);
-      const updatedChats = ownerChats.map(chat => 
+      const updatedChats = ownerChats.map(chat =>
         chat.id === activeOwnerChat.id ? updatedChat : chat
       );
       onUpdateOwnerChats(updatedChats);
       setInputValue('');
-      
+
       // Simulate owner response
       setIsTyping(true);
       setTimeout(() => {
         setIsTyping(false);
-        
+
         // Generate dynamic owner responses based on message content
         const lowerCaseMessage = messageText.toLowerCase();
         let ownerResponseText = '';
-        
+
         if (lowerCaseMessage.includes('schedule') || lowerCaseMessage.includes('visit') || lowerCaseMessage.includes('viewing')) {
           ownerResponseText = `Absolutely! I'd be happy to schedule a viewing of ${activeOwnerChat.property?.title}. What day and time works best for you?`;
         } else if (lowerCaseMessage.includes('price') || lowerCaseMessage.includes('cost') || lowerCaseMessage.includes('rent')) {
@@ -574,7 +587,7 @@ export default function ConversationPageNew({
           ];
           ownerResponseText = defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
         }
-        
+
         const ownerResponse: Message = {
           id: (Date.now() + 1).toString(),
           type: 'owner',
@@ -587,7 +600,7 @@ export default function ConversationPageNew({
           lastMessage: ownerResponse.content,
         };
         setActiveOwnerChat(chatWithResponse);
-        const updatedChatsWithResponse = ownerChats.map(chat => 
+        const updatedChatsWithResponse = ownerChats.map(chat =>
           chat.id === activeOwnerChat.id ? chatWithResponse : chat
         );
         onUpdateOwnerChats(updatedChatsWithResponse);
@@ -609,7 +622,7 @@ export default function ConversationPageNew({
       toast.success(`Switched to chat with ${property.owner.name}`);
     } else {
       const ownerProperties = sampleProperties.filter((p: Property) => p.owner.id === property.owner.id);
-      
+
       const newChat: OwnerChat = {
         id: property.owner.id,
         owner: property.owner,
@@ -650,7 +663,7 @@ export default function ConversationPageNew({
     onScheduleVisit(visit);
     toast.success('Visit scheduled successfully!');
     setScheduleDialogOpen(false);
-    
+
     // Add confirmation message to chat
     if (activeOwnerChat) {
       const confirmMessage: Message = {
@@ -664,7 +677,7 @@ export default function ConversationPageNew({
         messages: [...activeOwnerChat.messages, confirmMessage],
       };
       setActiveOwnerChat(updatedChat);
-      const updatedChats = ownerChats.map(chat => 
+      const updatedChats = ownerChats.map(chat =>
         chat.id === activeOwnerChat.id ? updatedChat : chat
       );
       onUpdateOwnerChats(updatedChats);
@@ -674,15 +687,15 @@ export default function ConversationPageNew({
   return (
     <div className="bg-white h-screen flex flex-col relative">
       {/* Header */}
-      <header className="border-b border-[#f0effb] py-6 px-8 relative z-10">
+      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#f0effb] py-5 px-8">
         <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-          <button 
+          <button
             onClick={() => onNavigate('home')}
-            className="font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[44px] text-[#110229] uppercase tracking-[-1.32px] cursor-pointer hover:text-[#7065f0] transition-colors"
+            className="font-['Plus_Jakarta_Sans:ExtraBold',sans-serif] font-extrabold text-[28px] text-[#110229] uppercase tracking-[-1px] cursor-pointer hover:text-[#7065f0] transition-colors"
           >
             HOMIX.AI
           </button>
-          <nav className="flex gap-6 font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] tracking-[-0.54px] uppercase">
+          <nav className="hidden md:flex gap-10 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[15px] tracking-[-0.2px] uppercase">
             <button onClick={() => onNavigate('products')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Products</button>
             <button onClick={() => onNavigate('features')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Features</button>
             <button onClick={() => onNavigate('pricing')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Pricing</button>
@@ -697,244 +710,265 @@ export default function ConversationPageNew({
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* LEFT SIDEBAR - Only shows when ownerChats exist */}
-        {showSidebar && (
-          <div className="w-[262px] border-r border-[#f0effb] flex flex-col bg-white" style={{ transition: 'all 0.3s ease' }}>
-            <div className="p-4 border-b border-[#f0effb] flex items-center justify-between">
-              <h2 className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[18px] text-[#110229]">
-                Conversations
-              </h2>
-              <button
-                onClick={handleClearConversation}
-                title="Clear conversation"
-                className="w-7 h-7 rounded-full hover:bg-red-50 flex items-center justify-center transition-colors group"
-                aria-label="Clear conversation"
-              >
-                <Trash2 className="w-4 h-4 text-[#8f90a6] group-hover:text-red-500 transition-colors" />
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-2">
-              {/* AI Chat */}
-              <button
-                onClick={() => {
-                  setCurrentView('general');
-                  setActiveOwnerChat(null);
-                }}
-                className={`w-full p-3 rounded-[6px] mb-2 flex items-center gap-3 transition-colors ${
-                  currentView === 'general' 
-                    ? 'bg-[#f0effb] border-[1.5px] border-[#7065f0]' 
-                    : 'hover:bg-[#f0effb] border-[1.5px] border-transparent'
-                }`}
-              >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7065f0] to-[#5048c7] flex items-center justify-center">
-                  <HomeIcon className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[12px] text-[#110229]">
-                    Homix AI
-                  </p>
-                  <p className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[10px] text-[#8f90a6] truncate">
-                    AI Assistant
-                  </p>
-                </div>
-              </button>
+      <div className="flex-1 flex overflow-hidden bg-white/50 backdrop-blur-sm">
+        {/* LEFT SIDEBAR */}
+        <div className="w-[300px] border-r border-[#f0effb] flex flex-col bg-white/80 backdrop-blur-md">
+          <div className="p-6 border-b border-[#f0effb] flex items-center justify-between">
+            <h2 className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[18px] text-[#110229]">
+              Conversations
+            </h2>
+            <button
+              onClick={handleClearConversation}
+              className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors group"
+            >
+              <Trash2 className="w-5 h-5 text-[#8f90a6] group-hover:text-red-500 transition-colors" />
+            </button>
+          </div>
 
-              {/* Owner Chats */}
-              {ownerChats.map((chat) => (
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <button
+              onClick={() => {
+                setCurrentView('general');
+                setActiveOwnerChat(null);
+              }}
+              className={`w-full p-4 rounded-[20px] flex items-center gap-4 transition-all duration-300 ${currentView === 'general'
+                ? 'bg-[#7065f0] text-white shadow-lg shadow-purple-200'
+                : 'hover:bg-[#f0effb] text-[#110229]'
+                }`}
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${currentView === 'general' ? 'bg-white/20' : 'bg-[#7065f0]/10'}`}>
+                <HomeIcon className={`w-5 h-5 ${currentView === 'general' ? 'text-white' : 'text-[#7065f0]'}`} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px]">
+                  Homix AI
+                </p>
+                <p className={`font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[11px] ${currentView === 'general' ? 'text-white/70' : 'text-[#8f90a6]'}`}>
+                  AI Assistant
+                </p>
+              </div>
+            </button>
+
+            {ownerChats.length > 0 ? (
+              ownerChats.map((chat) => (
                 <button
                   key={chat.id}
                   onClick={() => {
                     setCurrentView('owner');
                     setActiveOwnerChat(chat);
                   }}
-                  className={`w-full p-3 rounded-[6px] mb-2 flex items-center gap-3 transition-colors ${
-                    activeOwnerChat?.id === chat.id 
-                      ? 'bg-[#f0effb] border-[1.5px] border-[#7065f0]' 
-                      : 'hover:bg-[#f0effb] border-[1.5px] border-transparent'
-                  }`}
+                  className={`w-full p-4 rounded-[20px] flex items-center gap-4 transition-all duration-300 ${activeOwnerChat?.id === chat.id
+                    ? 'bg-[#7065f0] text-white shadow-lg shadow-purple-200'
+                    : 'hover:bg-[#f0effb] text-[#110229]'
+                    }`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-[#f0effb] flex items-center justify-center">
-                    {chat.owner.type === 'individual' ? 
-                      <User className="w-5 h-5 text-[#7065f0]" /> : 
-                      <Building2 className="w-5 h-5 text-[#7065f0]" />
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activeOwnerChat?.id === chat.id ? 'bg-white/20' : 'bg-[#7065f0]/10'}`}>
+                    {chat.owner.type === 'individual' ?
+                      <User className={`w-5 h-5 ${activeOwnerChat?.id === chat.id ? 'text-white' : 'text-[#7065f0]'}`} /> :
+                      <Building2 className={`w-5 h-5 ${activeOwnerChat?.id === chat.id ? 'text-white' : 'text-[#7065f0]'}`} />
                     }
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[12px] text-[#110229] truncate">
+                    <p className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px]">
                       {chat.owner.name}
                     </p>
-                    <p className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[10px] text-[#8f90a6] truncate">
+                    <p className={`font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[11px] truncate max-w-[140px] ${activeOwnerChat?.id === chat.id ? 'text-white/70' : 'text-[#8f90a6]'}`}>
                       {chat.lastMessage}
                     </p>
                   </div>
-                  {chat.unread > 0 && (
-                    <div className="w-5 h-5 rounded-full bg-[#7065f0] flex items-center justify-center">
-                      <span className="text-white text-[10px] font-bold">{chat.unread}</span>
-                    </div>
-                  )}
                 </button>
-              ))}
-
-              {/* Recent Conversations Section */}
-              {ownerChats.length === 0 && (
-                <div className="mt-4">
-                  <h3 className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[12px] text-[#8f90a6] mb-2 px-3">
-                    Recent Conversations
-                  </h3>
-                  <div className="text-center py-6">
-                    <MessageCircle className="w-8 h-8 text-[#8f90a6] mx-auto mb-2 opacity-30" />
-                    <p className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[11px] text-[#8f90a6]">
-                      No conversations yet
-                    </p>
-                    <p className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[10px] text-[#8f90a6] mt-1">
-                      Chat with property owners to see them here
-                    </p>
-                  </div>
+              ))
+            ) : (
+              currentView === 'general' && (
+                <div className="p-8 text-center bg-[#f7f7fd] border border-dashed border-[#f0effb] rounded-[24px]">
+                  <MessageCircle className="w-8 h-8 text-[#8f90a6] mx-auto mb-4 opacity-20" />
+                  <p className="text-[#8f90a6] text-[13px] font-medium leading-relaxed">
+                    No conversations yet<br />
+                    <span className="text-[12px] opacity-70">Chat with property owners to see them here</span>
+                  </p>
                 </div>
-              )}
-            </div>
+              )
+            )}
+
           </div>
-        )}
+        </div>
 
         {/* MAIN CHAT AREA */}
-        <div 
-          className="flex-1 flex flex-col"
-          style={{
-            marginLeft: showSidebar ? '0' : 'auto',
-            marginRight: 'auto',
-            maxWidth: showSidebar ? '100%' : '800px',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          {/* Messages Container */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 flex flex-col relative bg-[#f7f7fd]">
+          {/* Active Filters */}
+          {activeFilters.length > 0 && currentView === 'general' && (
+            <div className="px-10 pt-6 flex flex-wrap gap-2">
+              {activeFilters.map((filter, i) => (
+                <div key={i} className="flex items-center gap-2 bg-white border border-[#f0effb] px-3 py-1.5 rounded-full shadow-sm animate-in fade-in zoom-in duration-300">
+                  <span className="text-[11px] font-bold text-[#8f90a6] uppercase tracking-wider">{filter.label}:</span>
+                  <span className="text-[13px] font-bold text-[#7065f0]">{filter.value}</span>
+                  <button
+                    onClick={() => setActiveFilters(prev => prev.filter((_, idx) => idx !== i))}
+                    className="ml-1 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setActiveFilters([])}
+                className="text-[11px] font-bold text-[#8f90a6] hover:text-[#7065f0] uppercase tracking-wider ml-2 transition-colors"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-10 space-y-8">
             {currentMessages.map((msg: Message, idx: number) => (
-              <div key={msg.id} className="w-full">
+              <div key={msg.id} className="w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
                 {msg.type === 'user' ? (
                   <div className="flex justify-end">
-                    <div className="bg-[#7065f0] rounded-[12px] px-[16px] py-[12px] max-w-[80%]">
-                      <MarkdownText 
-                        content={msg.content} 
+                    <div className="bg-[#110229] rounded-[24px] rounded-tr-none px-6 py-4 max-w-[70%] shadow-xl shadow-gray-200/50">
+                      <MarkdownText
+                        content={msg.content}
                         isUser={true}
-                        className="text-white text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]" 
+                        className="text-white text-[16px] font-['Plus_Jakarta_Sans:Medium',sans-serif]"
                       />
-                      <p className="text-white/70 text-[10px] mt-1 font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.timestamp}</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-6">
                     {msg.thinking && <ThinkingBlock content={msg.thinking} />}
-                    {msg.content && (
-                      <div className="bg-[#f0effb] rounded-[12px] px-[16px] py-[12px] max-w-[80%]">
-                        <MarkdownText 
-                          content={msg.content} 
-                          className="text-[#110229] text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]" 
-                        />
-                        <p className="text-[#8f90a6] text-[10px] mt-1 font-['Plus_Jakarta_Sans:Medium',sans-serif]">{msg.timestamp}</p>
+                    <div className="flex gap-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7065f0] to-[#5048c7] flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-purple-100">
+                        <HomeIcon className="w-5 h-5 text-white" />
                       </div>
-                    )}
-
-                    {/* Show placeholder cards while loading */}
-                    {msg.showPlaceholders && (
-                      <div className="w-full overflow-x-auto">
-                        <div className="flex gap-3 pb-2">
-                          {[1, 2, 3].map((i) => (
-                            <PropertyCardSkeleton key={`placeholder-${i}`} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Show real property cards when available */}
-                    {msg.properties && msg.properties.length > 0 && !msg.showPlaceholders && (
-                      <div className={`w-full ${msg.properties.length > 2 ? 'overflow-x-auto' : ''}`}>
-                        <div className={`flex gap-3 pb-2 ${msg.properties.length > 2 ? 'w-max' : 'grid grid-cols-1 md:grid-cols-2'}`}>
-                          {msg.properties.map((property: Property) => (
-                            <PropertyCard
-                              key={property.id}
-                              property={property}
-                              showOwnerInfo={true}
-                              inChat={true}
-                              onChatWithOwner={currentView === 'general' ? handleChatWithOwner : undefined}
-                              onScheduleViewing={currentView === 'owner' ? handleScheduleVisit : undefined}
-                              onClick={onViewProperty ? () => onViewProperty(property.id) : undefined}
+                      <div className="flex flex-col gap-4 max-w-[85%]">
+                        {msg.content && (
+                          <div className="bg-white rounded-[24px] rounded-tl-none px-6 py-4 shadow-sm border border-[#f0effb]">
+                            <MarkdownText
+                              content={msg.content}
+                              className="text-[#110229] text-[16px] font-['Plus_Jakarta_Sans:Medium',sans-serif]"
                             />
-                          ))}
-                        </div>
+                          </div>
+                        )}
+
+                        {msg.properties && msg.properties.length > 0 && (
+                          <div className="w-full overflow-x-auto pb-4 -mx-1 px-1">
+                            <div className="flex gap-6 w-max">
+                              {msg.properties.map((property: Property) => (
+                                <PropertyCard
+                                  key={property.id}
+                                  property={property}
+                                  showOwnerInfo={true}
+                                  inChat={true}
+                                  onChatWithOwner={currentView === 'general' ? handleChatWithOwner : undefined}
+                                  onScheduleViewing={currentView === 'owner' ? handleScheduleVisit : undefined}
+                                  onClick={onViewProperty ? () => onViewProperty(property.id) : undefined}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    
-                    {/* Show Quick Replies after first AI message */}
-                    {idx === 0 && showQuickReplies && currentView === 'general' && (
-                      <QuickReplies onReplyClick={handleSendMessage} show={showQuickReplies} />
-                    )}
+                    </div>
                   </div>
                 )}
               </div>
             ))}
-            
-            {isTyping && <TypingIndicator />}
+
+            {isTyping && (
+              <div className="flex gap-4 animate-in fade-in slide-in-from-bottom-2">
+                <div className="w-10 h-10 rounded-full bg-[#7065f0]/10 flex items-center justify-center flex-shrink-0">
+                  <HomeIcon className="w-5 h-5 text-[#7065f0]" />
+                </div>
+                <TypingIndicator />
+              </div>
+            )}
           </div>
 
+          {/* Quick Replies */}
+          {showQuickReplies && currentView === 'general' && generalMessages.length < 2 && (
+            <div className="px-10 pb-6">
+              <div className="flex flex-wrap gap-3 justify-center">
+                {[
+                  { emoji: '🏠', text: 'Buy Home', color: '#7065f0', bg: '#f0effb' },
+                  { emoji: '💰', text: 'Sell Home', color: '#2E7D32', bg: '#E8F5E9' },
+                  { emoji: '🔑', text: 'Rent Home', color: '#D97706', bg: '#FEF3C7' },
+                  { emoji: '🏢', text: 'Commercial', color: '#DC2626', bg: '#FEE2E2' },
+                ].map((reply) => (
+                  <button
+                    key={reply.text}
+                    onClick={() => handleSendMessage(reply.text)}
+                    className="flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-[#f0effb] hover:border-[#7065f0] hover:shadow-lg transition-all text-[14px] font-bold text-[#110229]"
+                  >
+                    <span>{reply.emoji}</span>
+                    <span>{reply.text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Input Area */}
-          <div className="border-t border-[#f0effb] p-4">
-            <div className="max-w-[622px] mx-auto relative">
+          <div className="px-10 pb-10">
+            <div className="max-w-[900px] mx-auto relative group">
+              <div className="absolute inset-0 bg-[#7065f0]/10 rounded-full blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="What are you looking for?"
-                className="w-full h-[60px] font-['Darker_Grotesque:Medium',sans-serif] font-medium text-[18px] text-[#110229] placeholder:text-[#8f90a6] bg-white border-[1.5px] border-[#f0effb] rounded-[6px] px-4 pr-12 focus:border-[#7065f0] focus:outline-none transition-colors"
+                placeholder="Message Homix AI..."
+                className="relative w-full h-[72px] font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] text-[#110229] placeholder:text-[#8f90a6] bg-white border-[2px] border-[#f0effb] rounded-full px-8 pr-20 focus:border-[#7065f0] focus:outline-none transition-all duration-300 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] focus:shadow-[0_20px_50px_-15px_rgba(112,101,240,0.15)]"
               />
               <button
                 onClick={() => handleSendMessage()}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-[36px] h-[36px] bg-[#7065f0] rounded-full flex items-center justify-center hover:bg-[#5048c7] transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-[52px] h-[52px] bg-[#7065f0] rounded-full flex items-center justify-center hover:bg-[#5048c7] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-200"
               >
-                <Send className="w-4 h-4 text-white" />
+                <Send className="w-6 h-6 text-white" />
               </button>
             </div>
           </div>
         </div>
 
         {/* RIGHT SIDEBAR - Scheduled Visits */}
-        {showSidebar && (
-          <div className="w-[262px] border-l border-[#f0effb] flex flex-col bg-white">
-            <div className="p-4 border-b border-[#f0effb]">
-              <h2 className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[18px] text-[#110229]">
+        <div className="w-[300px] border-l border-[#f0effb] flex flex-col bg-white/80 backdrop-blur-md">
+          <div className="p-6 border-b border-[#f0effb]">
+            <h2 className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[18px] text-[#110229]">
+              Activity
+            </h2>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div>
+              <h3 className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[12px] text-[#8f90a6] uppercase tracking-wider mb-4 px-2">
                 Scheduled Visits
-              </h2>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-4">
+              </h3>
               {scheduledVisits.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <p className="text-[#8f90a6] text-[14px] font-['Plus_Jakarta_Sans:Medium',sans-serif]">
-                    No visits scheduled yet
+                <div className="bg-[#f7f7fd] border border-dashed border-[#f0effb] rounded-[24px] p-8 text-center">
+                  <Calendar className="w-8 h-8 text-[#8f90a6] mx-auto mb-4 opacity-20" />
+                  <p className="text-[#8f90a6] text-[13px] font-medium">
+                    No visits scheduled
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {scheduledVisits.map((visit) => (
-                    <div key={visit.id} className="bg-[#f0effb] rounded-[8px] p-3">
-                      <p className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[12px] text-[#110229] mb-1">
+                    <div key={visit.id} className="bg-white border border-[#f0effb] rounded-[20px] p-4 shadow-sm hover:border-[#7065f0] transition-colors">
+                      <p className="font-bold text-[14px] text-[#110229] mb-2">
                         {visit.propertyName}
                       </p>
-                      <p className="text-[10px] text-[#8f90a6] font-['Plus_Jakarta_Sans:Medium',sans-serif]">
-                        {visit.date.toLocaleDateString()}
-                      </p>
-                      <p className="text-[10px] text-[#8f90a6] font-['Plus_Jakarta_Sans:Medium',sans-serif]">
-                        {visit.time}
-                      </p>
+                      <div className="flex items-center gap-2 text-[12px] text-[#8f90a6]">
+                        <Calendar className="w-3 h-3" />
+                        <span>{visit.date.toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[12px] text-[#8f90a6] mt-1">
+                        <MessageCircle className="w-3 h-3" />
+                        <span>{visit.time}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Schedule Visit Dialog */}
