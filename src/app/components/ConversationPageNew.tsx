@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Page, Message, OwnerChat, ScheduledVisit, Property } from '../types';
 import { sampleProperties } from '../data';
-import { getCurrentTime, matchPropertiesFromResponse, convertListingToProperty } from '../utils';
+import { getCurrentTime, convertListingToProperty } from '../utils';
 import { startSession, SessionNotFoundError } from '../api/chat';
 import PropertyCard from './PropertyCard';
 import PropertyCardSkeleton from './PropertyCardSkeleton';
@@ -445,17 +445,8 @@ export default function ConversationPageNew({
         )
       );
 
-      // After stream is done, match properties
-      const properties = matchPropertiesFromResponse(fullText, messageText);
-      if (properties.length > 0) {
-        setGeneralMessages(prev =>
-          prev.map(msg =>
-            msg.id === aiMessageId
-              ? { ...msg, properties }
-              : msg
-          )
-        );
-      }
+      // Real property suggestions are already injected via the 'suggestions' SSE event.
+      // No need to match mock properties here.
 
       // Extract filters from AI response or thinking
       if (messageText.toLowerCase().includes('new york')) {
@@ -500,15 +491,11 @@ export default function ConversationPageNew({
       console.error('Chat API error:', error);
       toast.error('Chat service is unavailable. Showing fallback results.');
 
-      // Fallback on error - remove the empty/partial message and show fallback
-      // Or update the existing one with fallback text
-      const properties = matchPropertiesFromResponse('', messageText);
-      const fallbackContent = properties.length > 0 ? 'Here are some properties I found:' : 'Let me help you find properties. What are you looking for?';
-
+      // Show error fallback text without mock property cards
       setGeneralMessages(prev =>
         prev.map(msg =>
           msg.id === aiMessageId
-            ? { ...msg, content: fallbackContent, properties: properties.length > 0 ? properties : undefined }
+            ? { ...msg, content: 'Sorry, something went wrong. Please try again.' }
             : msg
         )
       );
@@ -889,10 +876,10 @@ export default function ConversationPageNew({
             <div className="px-10 pb-6">
               <div className="flex flex-wrap gap-3 justify-center">
                 {[
-                  { emoji: '🏠', text: 'Buy Home', color: '#7065f0', bg: '#f0effb' },
-                  { emoji: '💰', text: 'Sell Home', color: '#2E7D32', bg: '#E8F5E9' },
-                  { emoji: '🔑', text: 'Rent Home', color: '#D97706', bg: '#FEF3C7' },
-                  { emoji: '🏢', text: 'Commercial', color: '#DC2626', bg: '#FEE2E2' },
+                  { emoji: '🏠', text: 'გთხოვ, მაყიდინო ბინა ვერაზე, 70 კვ.მ.', color: '#7065f0', bg: '#f0effb' },
+                  // { emoji: '💰', text: 'გთხოვ, გაყიდინო ბინა მთაწმინდაზე, 100 კვ.მ.', color: '#2E7D32', bg: '#E8F5E9' },
+                  { emoji: '🔑', text: 'ვიქირავებ ბინას საბურთალოზე, დღეში 100 ლარად', color: '#D97706', bg: '#FEF3C7' },
+                  // { emoji: '🏢', text: 'გთხოვ, დამაქირავებინო კომერციული ფართი მთაწმინდაზე, 100 კვ.მ.', color: '#DC2626', bg: '#FEE2E2' },
                 ].map((reply) => (
                   <button
                     key={reply.text}
