@@ -109,7 +109,8 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
               <span className="text-xl">🏠</span> Buy Property
             </button>
             <button
-              onClick={() => onNavigate('conversation', 'გამარჯობა, გთხოვთ დამეხმაროთ ბინის გაყიდვაში!')}
+              onClick={() => toast.error('Sell Property is not available yet.')}
+              // onClick={() => onNavigate('conversation', 'გამარჯობა, გთხოვთ დამეხმაროთ ბინის გაყიდვაში!')}
               className="bg-[#e1f1e3] text-[#2E7D32] rounded-full px-8 py-4 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:bg-[#d2ead5] border border-[#d2ead5] transition-all uppercase tracking-wide flex items-center gap-2"
             >
               <span className="text-xl">💰</span> Sell Property
