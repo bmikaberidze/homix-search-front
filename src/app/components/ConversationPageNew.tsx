@@ -59,7 +59,7 @@ function QuickReplies({ onReplyClick, show }: { onReplyClick: (text: string) => 
 // Typing Indicator Component
 function TypingIndicator() {
   return (
-    <div className="bg-[#f0effb] rounded-[12px] px-[16px] py-[12px] flex gap-[6px] w-fit">
+    <div className="bg-[#f0effb] rounded-[12px] h-10 px-[16px] flex items-center gap-[6px] w-fit">
       {[0, 0.2, 0.4].map((delay, i) => (
         <div
           key={i}
@@ -835,17 +835,19 @@ export default function ConversationPageNew({
                   <div className="flex flex-col gap-6">
                     {msg.thinking && <ThinkingBlock content={msg.thinking} />}
                     <div className="flex gap-4">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7065f0] to-[#5048c7] flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-purple-100">
-                        <HomeIcon className="w-5 h-5 text-white" />
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${msg.content ? 'mt-1' : ''} shadow-lg ${msg.content ? 'bg-gradient-to-br from-[#7065f0] to-[#5048c7] shadow-purple-100' : 'bg-[#7065f0]/10'}`}>
+                        <HomeIcon className={`w-5 h-5 ${msg.content ? 'text-white' : 'text-[#7065f0]'}`} />
                       </div>
                       <div className="flex flex-col gap-4 max-w-[85%]">
-                        {msg.content && (
+                        {msg.content ? (
                           <div className="bg-white rounded-[24px] rounded-tl-none px-6 py-4 shadow-sm border border-[#f0effb]">
                             <MarkdownText
                               content={msg.content}
                               className="text-[#110229] text-[16px] font-['Plus_Jakarta_Sans:Medium',sans-serif]"
                             />
                           </div>
+                        ) : (
+                          <TypingIndicator />
                         )}
 
                         {msg.properties && msg.properties.length > 0 && (
@@ -872,8 +874,8 @@ export default function ConversationPageNew({
               </div>
             ))}
 
-            {isTyping && (
-              <div className="flex gap-4 animate-in fade-in slide-in-from-bottom-2">
+            {isTyping && (currentView === 'owner' || (currentMessages.length > 0 && currentMessages[currentMessages.length - 1].type !== 'ai')) && (
+              <div className="flex gap-4 items-center animate-in fade-in slide-in-from-bottom-2">
                 <div className="w-10 h-10 rounded-full bg-[#7065f0]/10 flex items-center justify-center flex-shrink-0">
                   <HomeIcon className="w-5 h-5 text-[#7065f0]" />
                 </div>

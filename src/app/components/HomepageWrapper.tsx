@@ -19,7 +19,7 @@ interface HomepageWrapperProps {
 }
 
 export default function HomepageWrapper({ onNavigate, onViewProperty, currentUser, onOpenAuth, onSignOut }: HomepageWrapperProps) {
-  const [searchQuery, setSearchQuery] = useState('გამარჯობა, გთხოვ მომიძებნო ბინა თბილისში, ერთი დღით 100 ლარად, აივნით!');
+  const [searchQuery, setSearchQuery] = useState('გამარჯობა, ბინას ვეძებ თბილისში, დღეში 100 ლარად, აივნით!');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
