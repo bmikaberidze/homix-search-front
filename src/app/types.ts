@@ -57,19 +57,3 @@ export interface ScheduledVisit {
     time: string
     address: string
 }
-
-export type Page =
-    | 'home'
-    | 'conversation'
-    | 'property'
-    | 'features'
-    | 'pricing'
-    | 'contact'
-    | 'products'
-    | 'profile'
-    | 'saved-properties'
-    | 'messages'
-    | 'settings'
-    | 'signin'
-    | 'signup'
-    | 'onboarding'

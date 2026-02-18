@@ -1,31 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Page, Message, OwnerChat, ScheduledVisit, Property } from '../types';
+import { useSearchParams, useLocation } from 'react-router-dom';
+import { Message, OwnerChat, ScheduledVisit, Property } from '../types';
 import { sampleProperties } from '../data';
 import { getCurrentTime, convertListingToProperty } from '../utils';
-import { startSession, SessionNotFoundError } from '../api/chat';
+import { startSession, streamChatMessage, SessionNotFoundError } from '../api/chat';
 import PropertyCard from './PropertyCard';
-import PropertyCardSkeleton from './PropertyCardSkeleton';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
 import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import { UserData } from './AuthDialog';
-import UserMenu from './UserMenu';
+import { useApp } from '@/app/context/AppContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
-interface ConversationPageProps {
-  onNavigate: (page: Page, query?: string, property?: Property) => void;
-  initialQuery?: string;
-  initialProperty?: Property | null;
-  scheduledVisits: ScheduledVisit[];
-  onScheduleVisit: (visit: Omit<ScheduledVisit, 'id'>) => void;
-  onViewProperty?: (propertyId: string) => void;
-  ownerChats: OwnerChat[];
-  onUpdateOwnerChats: (chats: OwnerChat[]) => void;
-  currentUser: UserData | null;
-  onOpenAuth: (mode: 'signin' | 'signup') => void;
-  onSignOut: () => void;
-}
 
 // Quick Reply Buttons Component
 function QuickReplies({ onReplyClick, show }: { onReplyClick: (text: string) => void; show: boolean }) {
@@ -150,29 +135,22 @@ function MarkdownText({ content, className = '', isUser = false }: { content: st
   );
 }
 
-export default function ConversationPageNew({
-  onNavigate,
-  initialQuery = '',
-  initialProperty = null,
-  scheduledVisits,
-  onScheduleVisit,
-  onViewProperty,
-  ownerChats,
-  onUpdateOwnerChats,
-  currentUser,
-  onOpenAuth,
-  onSignOut,
-}: ConversationPageProps) {
+export default function ConversationPageNew() {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const initialQuery = searchParams.get('q') || '';
+  const initialProperty = (location.state as any)?.ownerProperty || null;
+
+  const {
+    scheduledVisits,
+    handleScheduleVisit: onScheduleVisit,
+    ownerChats,
+    handleUpdateOwnerChats: onUpdateOwnerChats,
+  } = useApp();
+
   // STATE (AgroHub Pattern)
   const [currentView, setCurrentView] = useState<'general' | 'owner'>('general');
-  const [generalMessages, setGeneralMessages] = useState<Message[]>([
-    // {
-    //   id: '1',
-    //   type: 'ai',
-    //   content: "Hello! 👋 I'm Homix AI. I help you find, sell, or rent properties. What are you looking for today?",
-    //   timestamp: getCurrentTime(),
-    // }
-  ]);
+  const [generalMessages, setGeneralMessages] = useState<Message[]>([]);
   const [activeOwnerChat, setActiveOwnerChat] = useState<OwnerChat | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -306,7 +284,6 @@ export default function ConversationPageNew({
   }, [initialProperty]);
 
   const currentMessages = currentView === 'general' ? generalMessages : (activeOwnerChat?.messages || []);
-  const showSidebar = true; // Always show sidebars
 
   // AI Response Processing
   const processAIResponse = async (messageText: string) => {
@@ -335,8 +312,7 @@ export default function ConversationPageNew({
       const currentSessionId = await ensureSession();
       const currentConversationId = ensureConversationId();
 
-      await import('@/app/api/chat').then(m =>
-        m.streamChatMessage(
+      await streamChatMessage(
           messageText,
           currentSessionId,
           currentConversationId,
@@ -442,7 +418,6 @@ export default function ConversationPageNew({
             }
           },
           controller.signal
-        )
       );
 
       // Real property suggestions are already injected via the 'suggestions' SSE event.
@@ -641,7 +616,7 @@ export default function ConversationPageNew({
   };
 
   // Schedule Visit Handler
-  const handleScheduleVisit = (property: Property) => {
+  const handleScheduleVisitDialog = (property: Property) => {
     setSelectedProperty(property);
     setScheduleDialogOpen(true);
   };
@@ -671,31 +646,12 @@ export default function ConversationPageNew({
     }
   };
 
-  return (
-    <div className="bg-white h-screen flex flex-col relative">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#f0effb] py-5 px-8">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-          <button
-            onClick={() => onNavigate('home')}
-            className="font-['Plus_Jakarta_Sans:ExtraBold',sans-serif] font-extrabold text-[28px] text-[#110229] uppercase tracking-[-1px] cursor-pointer hover:text-[#7065f0] transition-colors"
-          >
-            HOMIX.AI
-          </button>
-          <nav className="hidden md:flex gap-10 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[15px] tracking-[-0.2px] uppercase">
-            <button onClick={() => onNavigate('products')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Products</button>
-            <button onClick={() => onNavigate('features')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Features</button>
-            <button onClick={() => onNavigate('pricing')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Pricing</button>
-          </nav>
-          <UserMenu
-            currentUser={currentUser}
-            onOpenAuth={onOpenAuth}
-            onSignOut={onSignOut}
-            onNavigate={onNavigate}
-          />
-        </div>
-      </header>
+  const handleViewProperty = (propertyId: string) => {
+    toast.error('Viewing property is not available yet.');
+  };
 
+  return (
+    <>
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden bg-white/50 backdrop-blur-sm">
         {/* LEFT SIDEBAR */}
@@ -806,7 +762,7 @@ export default function ConversationPageNew({
             </div>
           )}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-10 space-y-8">
-            {currentMessages.map((msg: Message, idx: number) => (
+            {currentMessages.map((msg: Message) => (
               <div key={msg.id} className="w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
                 {msg.type === 'user' ? (
                   <div className="flex justify-end">
@@ -847,8 +803,8 @@ export default function ConversationPageNew({
                                   showOwnerInfo={true}
                                   inChat={true}
                                   onChatWithOwner={currentView === 'general' ? handleChatWithOwner : undefined}
-                                  onScheduleViewing={currentView === 'owner' ? handleScheduleVisit : undefined}
-                                  onClick={onViewProperty ? () => onViewProperty(property.id) : undefined}
+                                  onScheduleViewing={currentView === 'owner' ? handleScheduleVisitDialog : undefined}
+                                  onClick={() => handleViewProperty(property.id)}
                                 />
                               ))}
                             </div>
@@ -877,9 +833,7 @@ export default function ConversationPageNew({
               <div className="flex flex-wrap gap-3 justify-center">
                 {[
                   { emoji: '🏠', text: 'გთხოვ, მაყიდინო ბინა ვერაზე, 70 კვ.მ.', color: '#7065f0', bg: '#f0effb' },
-                  // { emoji: '💰', text: 'გთხოვ, გაყიდინო ბინა მთაწმინდაზე, 100 კვ.მ.', color: '#2E7D32', bg: '#E8F5E9' },
                   { emoji: '🔑', text: 'ვიქირავებ ბინას საბურთალოზე, დღეში 100 ლარად', color: '#D97706', bg: '#FEF3C7' },
-                  // { emoji: '🏢', text: 'გთხოვ, დამაქირავებინო კომერციული ფართი მთაწმინდაზე, 100 კვ.მ.', color: '#DC2626', bg: '#FEE2E2' },
                 ].map((reply) => (
                   <button
                     key={reply.text}
@@ -970,6 +924,6 @@ export default function ConversationPageNew({
           onConfirm={handleConfirmSchedule}
         />
       )}
-    </div>
+    </>
   );
 }

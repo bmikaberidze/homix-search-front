@@ -1,11 +1,7 @@
-import { Page } from '@/app/types';
+import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
-interface FooterProps {
-  onNavigate: (page: Page) => void;
-}
-
-export default function Footer({ onNavigate }: FooterProps) {
+export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -43,36 +39,24 @@ export default function Footer({ onNavigate }: FooterProps) {
             </h4>
             <ul className="space-y-4">
               <li>
-                <button
-                  onClick={() => onNavigate('home')}
-                  className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors"
-                >
+                <Link to="/" className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors">
                   Home
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('conversation')}
-                  className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors"
-                >
+                <Link to="/chat" className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors">
                   Search Properties
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('features')}
-                  className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors"
-                >
+                <Link to="/features" className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors">
                   Features
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('pricing')}
-                  className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors"
-                >
+                <Link to="/pricing" className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors">
                   Pricing
-                </button>
+                </Link>
               </li>
             </ul>
           </div>
@@ -84,12 +68,9 @@ export default function Footer({ onNavigate }: FooterProps) {
             </h4>
             <ul className="space-y-4">
               <li>
-                <button
-                  onClick={() => onNavigate('contact')}
-                  className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors"
-                >
+                <Link to="/contact" className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors">
                   Contact Us
-                </button>
+                </Link>
               </li>
               <li>
                 <a href="#" className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[15px] text-white/60 hover:text-white transition-colors">
@@ -132,7 +113,7 @@ export default function Footer({ onNavigate }: FooterProps) {
         <div className="border-t border-white/10 pt-8 mt-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <p className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[14px] text-white/40">
-              © {currentYear} Homix.ai. All rights reserved.
+              &copy; {currentYear} Homix.ai. All rights reserved.
             </p>
             <div className="flex gap-8">
               <a href="#" className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[14px] text-white/40 hover:text-white transition-colors">

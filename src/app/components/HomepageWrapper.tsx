@@ -1,72 +1,28 @@
 import { useState } from 'react';
-import { Page } from '@/app/types';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bed, Bath, Maximize2, Zap, ArrowRight } from 'lucide-react';
 import { sampleProperties } from '@/app/data';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import { UserData } from './AuthDialog';
-import UserMenu from './UserMenu';
 import { Button } from './ui/button';
-import { Toaster } from './ui/sonner';
 import { toast } from 'sonner';
-import Footer from './Footer';
+import { useApp } from '@/app/context/AppContext';
 
-interface HomepageWrapperProps {
-  onNavigate: (page: Page, query?: string, property?: any) => void;
-  onViewProperty?: (propertyId: string) => void;
-  currentUser: UserData | null;
-  onOpenAuth: (mode: 'signin' | 'signup') => void;
-  onSignOut: () => void;
-}
-
-export default function HomepageWrapper({ onNavigate, onViewProperty, currentUser, onOpenAuth, onSignOut }: HomepageWrapperProps) {
+export default function HomepageWrapper() {
+  const navigate = useNavigate();
+  const { currentUser } = useApp();
   const [searchQuery, setSearchQuery] = useState('გამარჯობა, ბინას ვეძებ თბილისში, დღეში 100 ლარად, აივნით!');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      onNavigate('conversation', searchQuery);
+      navigate('/chat?q=' + encodeURIComponent(searchQuery));
     }
   };
 
   const featuredProperties = sampleProperties.filter((p: any) => p.featured).slice(0, 3);
 
   return (
-    <div className="bg-white min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#f0effb] py-5 px-8">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-          <button
-            onClick={() => onNavigate('home')}
-            className="font-['Plus_Jakarta_Sans:ExtraBold',sans-serif] font-extrabold text-[28px] text-[#110229] uppercase tracking-[-1px] cursor-pointer hover:text-[#7065f0] transition-colors"
-          >
-            HOMIX.AI
-          </button>
-          <nav className="hidden md:flex gap-10 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[15px] tracking-[-0.2px] uppercase">
-            <button onClick={() => onNavigate('products')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Products</button>
-            <button onClick={() => onNavigate('features')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Features</button>
-            <button onClick={() => onNavigate('pricing')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Pricing</button>
-          </nav>
-          {currentUser ? (
-            <UserMenu user={currentUser} onSignOut={onSignOut} onNavigate={onNavigate} />
-          ) : (
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => toast.error('Sign In is not available yet.')}
-                className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[15px] text-[#110229] hover:text-[#7065f0] transition-colors uppercase"
-              >
-                Sign In
-              </button>
-              <Button
-                onClick={() => toast.error('Get Started is not available yet. Please use guest mode by searching below.')}
-                className="uppercase tracking-wide px-8"
-              >
-                Get Started
-              </Button>
-            </div>
-          )}
-        </div>
-      </header>
-
+    <>
       {/* Hero Section */}
       <div className="max-w-[1200px] mx-auto px-8 py-24 flex-grow relative overflow-hidden">
         {/* Background Accents */}
@@ -103,20 +59,19 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
           {/* Quick Action Buttons */}
           <div className="flex gap-4 justify-center mt-12 flex-wrap">
             <button
-              onClick={() => onNavigate('conversation', 'გამარჯობა, გთხოვთ დამეხმაროთ ბინის შეძენაში!')}
+              onClick={() => navigate('/chat?q=' + encodeURIComponent('გამარჯობა, გთხოვთ დამეხმაროთ ბინის შეძენაში!'))}
               className="bg-[#e7e6f9] text-[#7065f0] rounded-full px-8 py-4 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:bg-[#d5d4f5] border border-[#d5d4f5] transition-all uppercase tracking-wide flex items-center gap-2"
             >
               <span className="text-xl">🏠</span> Buy Property
             </button>
             <button
               onClick={() => toast.error('Sell Property is not available yet.')}
-              // onClick={() => onNavigate('conversation', 'გამარჯობა, გთხოვთ დამეხმაროთ ბინის გაყიდვაში!')}
               className="bg-[#e1f1e3] text-[#2E7D32] rounded-full px-8 py-4 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:bg-[#d2ead5] border border-[#d2ead5] transition-all uppercase tracking-wide flex items-center gap-2"
             >
               <span className="text-xl">💰</span> Sell Property
             </button>
             <button
-              onClick={() => onNavigate('conversation', 'გამარჯობა, მინდა დავიქირავო ბინა, გთხოვთ დამეხმაროთ!')}
+              onClick={() => navigate('/chat?q=' + encodeURIComponent('გამარჯობა, მინდა დავიქირავო ბინა, გთხოვთ დამეხმაროთ!'))}
               className="bg-[#f3e9cc] text-[#D97706] rounded-full px-8 py-4 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:bg-[#ece0ba] border border-[#ece0ba] transition-all uppercase tracking-wide flex items-center gap-2"
             >
               <span className="text-xl">🔑</span> Rent Property
@@ -149,7 +104,7 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
                 {/* Property Image */}
                 <div
                   className="h-[240px] relative overflow-hidden cursor-pointer"
-                  onClick={() => onViewProperty ? onViewProperty(property.id) : onNavigate('conversation', `Tell me about ${property.title}`)}
+                  onClick={() => toast.error('Property details page is not available yet.')}
                 >
                   <ImageWithFallback
                     src={property.images?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1080'}
@@ -196,7 +151,7 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onNavigate('conversation', '', property);
+                      navigate('/chat', { state: { ownerProperty: property } });
                     }}
                     className="w-full mt-6 rounded-xl hover:translate-y-[-2px] transition-transform shadow-sm hover:shadow-purple-200"
                   >
@@ -221,7 +176,7 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
               Start a natural conversation with our AI assistant and discover the perfect place to call home today.
             </p>
             <button
-              onClick={() => onNavigate('conversation')}
+              onClick={() => navigate('/chat')}
               className="bg-white text-[#7065f0] hover:bg-[#f0effb] rounded-xl px-12 py-5 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px] transition-all shadow-xl hover:scale-105 active:scale-95 uppercase tracking-widest"
             >
               Start Chatting Now
@@ -229,9 +184,6 @@ export default function HomepageWrapper({ onNavigate, onViewProperty, currentUse
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer onNavigate={onNavigate} />
-    </div>
+    </>
   );
 }

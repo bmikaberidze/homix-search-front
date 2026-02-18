@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { Page } from '@/app/types';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Lock } from 'lucide-react';
 import { Button } from './ui/button';
 import { UserData } from './AuthDialog';
+import { useApp } from '@/app/context/AppContext';
 import { toast } from 'sonner';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 
-interface SignInPageProps {
-  onNavigate: (page: Page) => void;
-  onSuccess: (user: UserData) => void;
-}
-
-export default function SignInPage({ onNavigate, onSuccess }: SignInPageProps) {
+export default function SignInPage() {
+  const navigate = useNavigate();
+  const { handleAuthSuccess } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,8 +35,8 @@ export default function SignInPage({ onNavigate, onSuccess }: SignInPageProps) {
 
       localStorage.setItem('homix_current_user', JSON.stringify(user));
       toast.success(`Welcome back, ${user.name}!`);
-      onSuccess(user);
-      onNavigate('home');
+      handleAuthSuccess(user);
+      navigate('/');
       setIsLoading(false);
     }, 1000);
   };
@@ -73,8 +70,8 @@ export default function SignInPage({ onNavigate, onSuccess }: SignInPageProps) {
     const user = demoUsers[type];
     localStorage.setItem('homix_current_user', JSON.stringify(user));
     toast.success(`Signed in as ${user.name}!`);
-    onSuccess(user);
-    onNavigate('home');
+    handleAuthSuccess(user);
+    navigate('/');
   };
 
   return (
@@ -84,7 +81,7 @@ export default function SignInPage({ onNavigate, onSuccess }: SignInPageProps) {
         <div className="max-w-[480px] mx-auto w-full">
           {/* Logo */}
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/')}
             className="font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[36px] text-[#110229] uppercase tracking-[-1.08px] mb-2 cursor-pointer hover:text-[#7065f0] transition-colors"
           >
             HOMIX.AI
@@ -189,33 +186,9 @@ export default function SignInPage({ onNavigate, onSuccess }: SignInPageProps) {
               Quick demo sign in:
             </p>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={() => handleQuickSignIn('demo-buyer')}
-                variant="outline"
-                size="sm"
-                className="flex-1 text-xs"
-              >
-                Buyer
-              </Button>
-              <Button
-                type="button"
-                onClick={() => handleQuickSignIn('demo-seller')}
-                variant="outline"
-                size="sm"
-                className="flex-1 text-xs"
-              >
-                Seller
-              </Button>
-              <Button
-                type="button"
-                onClick={() => handleQuickSignIn('demo-broker')}
-                variant="outline"
-                size="sm"
-                className="flex-1 text-xs"
-              >
-                Broker
-              </Button>
+              <Button type="button" onClick={() => handleQuickSignIn('demo-buyer')} variant="outline" size="sm" className="flex-1 text-xs">Buyer</Button>
+              <Button type="button" onClick={() => handleQuickSignIn('demo-seller')} variant="outline" size="sm" className="flex-1 text-xs">Seller</Button>
+              <Button type="button" onClick={() => handleQuickSignIn('demo-broker')} variant="outline" size="sm" className="flex-1 text-xs">Broker</Button>
             </div>
           </div>
 
@@ -223,7 +196,7 @@ export default function SignInPage({ onNavigate, onSuccess }: SignInPageProps) {
             <p className="text-[14px] text-[#8f90a6] font-['Plus_Jakarta_Sans:Medium',sans-serif]">
               Don't have an account?{' '}
               <button
-                onClick={() => onNavigate('signup')}
+                onClick={() => navigate('/signup')}
                 className="text-[#7065f0] font-['Plus_Jakarta_Sans:Bold',sans-serif] hover:underline"
               >
                 Sign Up

@@ -1,31 +1,24 @@
 import { useState } from 'react';
-import { Page, Property, ScheduledVisit } from '@/app/types';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Bed, Bath, Maximize2, Calendar, MessageCircle, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
 import { sampleProperties } from '@/app/data';
 import { toast } from 'sonner';
-import { UserData } from './AuthDialog';
-import UserMenu from './UserMenu';
-import Footer from './Footer';
+import { useApp } from '@/app/context/AppContext';
 
-interface PropertyPageProps {
-  onNavigate: (page: Page, query?: string, property?: Property) => void;
-  propertyId?: string;
-  onScheduleVisit?: (visit: any) => void;
-  currentUser: UserData | null;
-  onOpenAuth: (mode: 'signin' | 'signup') => void;
-  onSignOut: () => void;
-}
+export default function PropertyPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { currentUser, handleScheduleVisit, handleOpenAuth } = useApp();
 
-export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleVisit, currentUser, onOpenAuth, onSignOut }: PropertyPageProps) {
-  const property = sampleProperties.find(p => p.id === propertyId) || sampleProperties[0];
+  const property = sampleProperties.find(p => p.id === id) || sampleProperties[0];
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
-  const images = property.images && property.images.length > 0 
-    ? property.images 
+  const images = property.images && property.images.length > 0
+    ? property.images
     : ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1080'];
 
   const nextImage = () => {
@@ -38,50 +31,22 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
 
   const handleContact = () => {
     toast.success(`Opening chat with ${property.owner.name}`);
-    setTimeout(() => onNavigate('conversation', '', property), 500);
+    setTimeout(() => navigate('/chat', { state: { ownerProperty: property } }), 500);
   };
 
-  const handleScheduleVisit = (visit: any) => {
-    if (onScheduleVisit) {
-      onScheduleVisit(visit);
-    }
+  const onScheduleVisit = (visit: any) => {
+    handleScheduleVisit(visit);
     toast.success('Visit scheduled successfully!');
   };
 
   return (
-    <div className="bg-white min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b border-[#f0effb] py-6 px-8">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-          <button 
-            onClick={() => onNavigate('home')}
-            className="font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[44px] text-[#110229] uppercase tracking-[-1.32px] cursor-pointer hover:text-[#7065f0] transition-colors">
-            HOMIX.AI
-          </button>
-          <nav className="flex gap-6 font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] tracking-[-0.54px] uppercase">
-            <button onClick={() => onNavigate('products')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Products</button>
-            <button onClick={() => onNavigate('features')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Features</button>
-            <button onClick={() => onNavigate('pricing')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Pricing</button>
-          </nav>
-          {currentUser ? (
-            <UserMenu user={currentUser} onSignOut={onSignOut} onNavigate={onNavigate} />
-          ) : (
-            <button
-              onClick={() => onNavigate('signin')}
-              className="bg-[#7065f0] text-white hover:bg-[#5048c7] rounded-[6px] px-6 py-2 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] uppercase transition-colors"
-            >
-              Sign In
-            </button>
-          )}
-        </div>
-      </header>
-
+    <>
       {/* Content */}
-      <div className="max-w-[1200px] px-[16px] py-[32px] mx-[96px] my-[0px]" style="margin:0 auto;">
+      <div className="max-w-[1200px] px-[16px] py-[32px] mx-[96px] my-[0px]" style={{ margin: '0 auto' }}>
         {/* Back Button */}
         <button
-          onClick={() => onNavigate('conversation')}
-          className="flex items-center gap-2 text-[#7065f0] hover:text-[#5048c7] transition-colors font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px]"  style="padding-bottom:20px;">
+          onClick={() => navigate('/chat')}
+          className="flex items-center gap-2 text-[#7065f0] hover:text-[#5048c7] transition-colors font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px]" style={{ paddingBottom: '20px' }}>
           <ChevronLeft className="w-5 h-5" />
           Back to conversation 2
         </button>
@@ -96,7 +61,7 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
                 alt={property.title}
                 className="w-full h-full object-cover"
               />
-              
+
               {/* Navigation Arrows */}
               {images.length > 1 && (
                 <>
@@ -252,14 +217,14 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
 
               {/* CTA Buttons */}
               <div className="space-y-3 pt-6 border-t border-[#f0effb]">
-                <Button 
+                <Button
                   className="w-full"
                   onClick={() => setShowScheduleDialog(true)}
                 >
                   Schedule a Visit
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={handleContact}
                 >
@@ -277,11 +242,8 @@ export default function PropertyPage({ onNavigate, propertyId = '1', onScheduleV
         onOpenChange={setShowScheduleDialog}
         property={property}
         ownerName={property.owner.name}
-        onConfirm={handleScheduleVisit}
+        onConfirm={onScheduleVisit}
       />
-
-      {/* Footer */}
-      <Footer onNavigate={onNavigate} />
-    </div>
+    </>
   );
 }

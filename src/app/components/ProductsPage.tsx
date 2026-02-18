@@ -1,16 +1,7 @@
-import { Page } from '@/app/types';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
-import { UserData } from './AuthDialog';
-import UserMenu from './UserMenu';
-import Footer from './Footer';
+import { useApp } from '@/app/context/AppContext';
 import { Building2, Users, Briefcase, Check, ArrowRight } from 'lucide-react';
-
-interface ProductsPageProps {
-  onNavigate: (page: Page) => void;
-  currentUser: UserData | null;
-  onOpenAuth: (mode: 'signin' | 'signup') => void;
-  onSignOut: () => void;
-}
 
 const products = [
   {
@@ -69,52 +60,20 @@ const products = [
   },
 ];
 
-export default function ProductsPage({ onNavigate, currentUser, onOpenAuth, onSignOut }: ProductsPageProps) {
-  const handleCTA = (productId: string) => {
+export default function ProductsPage() {
+  const navigate = useNavigate();
+  const { currentUser, handleOpenAuth } = useApp();
+
+  const handleCTA = (_productId: string) => {
     if (!currentUser) {
-      onOpenAuth('signup');
+      handleOpenAuth('signup');
     } else {
-      onNavigate('pricing');
+      navigate('/pricing');
     }
   };
 
   return (
-    <div className="bg-white min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#f0effb] py-5 px-8">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-          <button
-            onClick={() => onNavigate('home')}
-            className="font-['Plus_Jakarta_Sans:ExtraBold',sans-serif] font-extrabold text-[28px] text-[#110229] uppercase tracking-[-1px] cursor-pointer hover:text-[#7065f0] transition-colors"
-          >
-            HOMIX.AI
-          </button>
-          <nav className="hidden md:flex gap-10 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[15px] tracking-[-0.2px] uppercase">
-            <button onClick={() => onNavigate('products')} className="text-[#7065f0]">Products</button>
-            <button onClick={() => onNavigate('features')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Features</button>
-            <button onClick={() => onNavigate('pricing')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Pricing</button>
-          </nav>
-          {currentUser ? (
-            <UserMenu user={currentUser} onSignOut={onSignOut} onNavigate={onNavigate} />
-          ) : (
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => onOpenAuth('signin')}
-                className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[15px] text-[#110229] hover:text-[#7065f0] transition-colors uppercase"
-              >
-                Sign In
-              </button>
-              <Button
-                onClick={() => onOpenAuth('signup')}
-                className="uppercase tracking-wide px-8"
-              >
-                Get Started
-              </Button>
-            </div>
-          )}
-        </div>
-      </header>
-
+    <>
       {/* Hero Section */}
       <div className="max-w-[1200px] mx-auto px-8 py-24">
         <div className="text-center mb-20 max-w-[800px] mx-auto">
@@ -182,7 +141,7 @@ export default function ProductsPage({ onNavigate, currentUser, onOpenAuth, onSi
               Our AI-powered assistant can help you find the perfect solution for your needs.
             </p>
             <button
-              onClick={() => onNavigate('conversation')}
+              onClick={() => navigate('/chat')}
               className="bg-white text-[#7065f0] hover:bg-[#f0effb] px-12 py-5 rounded-xl font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px] transition-all shadow-xl hover:scale-105 active:scale-95 uppercase tracking-wide"
             >
               Talk to AI Assistant
@@ -190,7 +149,6 @@ export default function ProductsPage({ onNavigate, currentUser, onOpenAuth, onSi
           </div>
         </div>
       </div>
-      <Footer onNavigate={onNavigate} />
-    </div>
+    </>
   );
 }

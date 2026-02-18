@@ -1,18 +1,9 @@
 import { useState } from 'react';
-import { Page } from '@/app/types';
+import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
-import { UserData } from './AuthDialog';
-import UserMenu from './UserMenu';
-import Footer from './Footer';
-
-interface PricingPageProps {
-  onNavigate: (page: Page) => void;
-  currentUser: UserData | null;
-  onOpenAuth: (mode: 'signin' | 'signup', plan?: string) => void;
-  onSignOut: () => void;
-}
+import { useApp } from '@/app/context/AppContext';
 
 const pricingTiers = [
   {
@@ -61,46 +52,13 @@ const pricingTiers = [
   }
 ];
 
-export default function PricingPage({ onNavigate, currentUser, onOpenAuth, onSignOut }: PricingPageProps) {
+export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const navigate = useNavigate();
+  const { handleOpenAuth } = useApp();
 
   return (
-    <div className="bg-white min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#f0effb] py-5 px-8">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-          <button
-            onClick={() => onNavigate('home')}
-            className="font-['Plus_Jakarta_Sans:ExtraBold',sans-serif] font-extrabold text-[28px] text-[#110229] uppercase tracking-[-1px] cursor-pointer hover:text-[#7065f0] transition-colors"
-          >
-            HOMIX.AI
-          </button>
-          <nav className="hidden md:flex gap-10 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[15px] tracking-[-0.2px] uppercase">
-            <button onClick={() => onNavigate('products')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Products</button>
-            <button onClick={() => onNavigate('features')} className="text-[#110229] hover:text-[#7065f0] transition-colors">Features</button>
-            <button onClick={() => onNavigate('pricing')} className="text-[#7065f0]">Pricing</button>
-          </nav>
-          {currentUser ? (
-            <UserMenu user={currentUser} onSignOut={onSignOut} onNavigate={onNavigate} />
-          ) : (
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => onOpenAuth('signin')}
-                className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[15px] text-[#110229] hover:text-[#7065f0] transition-colors uppercase"
-              >
-                Sign In
-              </button>
-              <Button
-                onClick={() => onOpenAuth('signup')}
-                className="uppercase tracking-wide px-8"
-              >
-                Get Started
-              </Button>
-            </div>
-          )}
-        </div>
-      </header>
-
+    <>
       {/* Hero Section */}
       <div className="max-w-[1200px] mx-auto px-8 py-24">
         <div className="text-center mb-16 max-w-[800px] mx-auto">
@@ -223,13 +181,13 @@ export default function PricingPage({ onNavigate, currentUser, onOpenAuth, onSig
             </p>
             <div className="flex gap-6 justify-center">
               <button
-                onClick={() => onOpenAuth('signup', 'Broker')}
+                onClick={() => handleOpenAuth('signup', 'Broker')}
                 className="bg-white text-[#7065f0] hover:bg-[#f0effb] px-12 py-5 rounded-xl font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px] transition-all shadow-xl hover:scale-105 active:scale-95 uppercase tracking-wide"
               >
                 Start Free Trial
               </button>
               <button
-                onClick={() => onNavigate('contact')}
+                onClick={() => navigate('/contact')}
                 className="bg-purple-400/20 text-white border border-white/30 hover:bg-purple-400/30 px-12 py-5 rounded-xl font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px] transition-all hover:scale-105 active:scale-95 uppercase tracking-wide"
               >
                 Contact Sales
@@ -238,7 +196,6 @@ export default function PricingPage({ onNavigate, currentUser, onOpenAuth, onSig
           </div>
         </div>
       </div>
-      <Footer onNavigate={onNavigate} />
-    </div>
+    </>
   );
 }
