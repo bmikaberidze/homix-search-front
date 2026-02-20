@@ -96,7 +96,7 @@ export default function SavedPropertiesPage() {
           <p className="font-['Plus_Jakarta_Sans:Medium',sans-serif] text-[16px] text-[#8f90a6] mb-6">
             Start browsing properties and save your favorites here
           </p>
-          <Button onClick={() => navigate('/chat')} className="bg-[#7065f0] text-white hover:bg-[#5048c7]">
+          <Button onClick={() => navigate('/chat', { state: { newConversation: true } })} className="bg-[#7065f0] text-white hover:bg-[#5048c7]">
             Browse Properties
           </Button>
         </div>

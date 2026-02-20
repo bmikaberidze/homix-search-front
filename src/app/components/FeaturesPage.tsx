@@ -174,7 +174,7 @@ export default function FeaturesPage() {
             </p>
             <div className="flex gap-6 justify-center">
               <button
-                onClick={() => navigate('/chat')}
+                onClick={() => navigate('/chat', { state: { newConversation: true } })}
                 className="bg-white text-[#7065f0] hover:bg-[#f0effb] px-10 py-5 rounded-xl font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px] transition-all shadow-xl hover:scale-105 active:scale-95 uppercase tracking-wide"
               >
                 Start Searching

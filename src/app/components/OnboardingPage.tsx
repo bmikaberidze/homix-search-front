@@ -50,7 +50,7 @@ export default function OnboardingPage() {
       localStorage.setItem('homix_current_user', JSON.stringify(updatedUser));
       handleUpdateUser(updatedUser);
       toast.success('Welcome to Homix.ai! Your account is all set up.');
-      navigate('/chat');
+      navigate('/chat', { state: { newConversation: true } });
     }
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigationType } from 'react-router-dom';
 import { Message, OwnerChat, ScheduledVisit, Property } from '../types';
 import { sampleProperties } from '../data';
 import { getCurrentTime, convertListingToProperty } from '../utils';
@@ -138,8 +138,11 @@ function MarkdownText({ content, className = '', isUser = false }: { content: st
 export default function ConversationPageNew() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const navigationType = useNavigationType();
+  const isReturning = navigationType === 'POP';
   const initialQuery = searchParams.get('q') || '';
   const initialProperty = (location.state as any)?.ownerProperty || null;
+  const isNewConversation = !isReturning && !!(initialQuery || initialProperty || (location.state as any)?.newConversation);
 
   const {
     scheduledVisits,
@@ -239,6 +242,8 @@ export default function ConversationPageNew() {
   }, []);
 
   const handleClearConversation = useCallback(() => {
+    const oldConvId = conversationIdRef.current;
+    if (oldConvId) localStorage.removeItem(`homix_messages_${oldConvId}`);
     const id = crypto.randomUUID();
     conversationIdRef.current = id;
     localStorage.setItem('homix_conversation_id', id);
@@ -250,9 +255,38 @@ export default function ConversationPageNew() {
   }, []);
 
   useEffect(() => {
+    if (isNewConversation) {
+      // Generate a new conversation ID — session is kept intact
+      const newConvId = crypto.randomUUID();
+      conversationIdRef.current = newConvId;
+      localStorage.setItem('homix_conversation_id', newConvId);
+    }
     ensureSession();
-    ensureConversationId();
+    const convId = ensureConversationId();
+
+    // Load persisted messages for this conversation (only when returning to an existing one)
+    if (!isNewConversation) {
+      const stored = localStorage.getItem(`homix_messages_${convId}`);
+      if (stored) {
+        try {
+          const messages = JSON.parse(stored) as Message[];
+          if (messages.length > 0) {
+            setGeneralMessages(messages);
+            setShowQuickReplies(false);
+          }
+        } catch {
+          // corrupted data — ignore, start fresh
+        }
+      }
+    }
   }, []);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    const convId = conversationIdRef.current;
+    if (!convId || generalMessages.length === 0) return;
+    localStorage.setItem(`homix_messages_${convId}`, JSON.stringify(generalMessages));
+  }, [generalMessages]);
 
   useEffect(() => {
     return () => {
@@ -269,7 +303,7 @@ export default function ConversationPageNew() {
 
   // Handle initial query from homepage search
   useEffect(() => {
-    if (initialQuery && !hasInitialized.current) {
+    if (initialQuery && !isReturning && !hasInitialized.current) {
       handleSendMessage(initialQuery);
       hasInitialized.current = true;
     }
@@ -277,7 +311,7 @@ export default function ConversationPageNew() {
 
   // Handle initial property to chat with owner
   useEffect(() => {
-    if (initialProperty && !hasInitialized.current) {
+    if (initialProperty && !isReturning && !hasInitialized.current) {
       handleChatWithOwner(initialProperty);
       hasInitialized.current = true;
     }

@@ -141,7 +141,7 @@ export default function ProductsPage() {
               Our AI-powered assistant can help you find the perfect solution for your needs.
             </p>
             <button
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate('/chat', { state: { newConversation: true } })}
               className="bg-white text-[#7065f0] hover:bg-[#f0effb] px-12 py-5 rounded-xl font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px] transition-all shadow-xl hover:scale-105 active:scale-95 uppercase tracking-wide"
             >
               Talk to AI Assistant

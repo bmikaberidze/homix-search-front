@@ -176,7 +176,7 @@ export default function HomepageWrapper() {
               Start a natural conversation with our AI assistant and discover the perfect place to call home today.
             </p>
             <button
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate('/chat', { state: { newConversation: true } })}
               className="bg-white text-[#7065f0] hover:bg-[#f0effb] rounded-xl px-12 py-5 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[16px] transition-all shadow-xl hover:scale-105 active:scale-95 uppercase tracking-widest"
             >
               Start Chatting Now
