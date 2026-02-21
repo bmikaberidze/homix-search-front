@@ -6,7 +6,7 @@ import { getCurrentTime, convertListingToProperty } from '../utils';
 import { startSession, streamChatMessage, SessionNotFoundError } from '../api/chat';
 import PropertyCard from './PropertyCard';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
-import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
+import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp, Trash2, Calendar, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/app/context/AppContext';
 import ReactMarkdown from 'react-markdown';
@@ -161,6 +161,8 @@ export default function ConversationPageNew() {
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [activeFilters, setActiveFilters] = useState<{ label: string, value: string }[]>([]);
+  const [rankedResults, setRankedResults] = useState<Property[]>([]);
+  const [isResultsExpanded, setIsResultsExpanded] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasInitialized = useRef(false);
@@ -243,7 +245,10 @@ export default function ConversationPageNew() {
 
   const handleClearConversation = useCallback(() => {
     const oldConvId = conversationIdRef.current;
-    if (oldConvId) localStorage.removeItem(`homix_messages_${oldConvId}`);
+    if (oldConvId) {
+      localStorage.removeItem(`homix_messages_${oldConvId}`);
+      localStorage.removeItem(`homix_ranked_results_${oldConvId}`);
+    }
     const id = crypto.randomUUID();
     conversationIdRef.current = id;
     localStorage.setItem('homix_conversation_id', id);
@@ -251,6 +256,8 @@ export default function ConversationPageNew() {
     setShowQuickReplies(true);
     setCurrentView('general');
     setActiveOwnerChat(null);
+    setRankedResults([]);
+    setIsResultsExpanded(false);
     toast.success('Conversation cleared');
   }, []);
 
@@ -264,7 +271,7 @@ export default function ConversationPageNew() {
     ensureSession();
     const convId = ensureConversationId();
 
-    // Load persisted messages for this conversation (only when returning to an existing one)
+    // Load persisted messages and ranked results for this conversation (only when returning to an existing one)
     if (!isNewConversation) {
       const stored = localStorage.getItem(`homix_messages_${convId}`);
       if (stored) {
@@ -278,6 +285,18 @@ export default function ConversationPageNew() {
           // corrupted data — ignore, start fresh
         }
       }
+
+      const storedResults = localStorage.getItem(`homix_ranked_results_${convId}`);
+      if (storedResults) {
+        try {
+          const results = JSON.parse(storedResults) as Property[];
+          if (results.length > 0) {
+            setRankedResults(results);
+          }
+        } catch {
+          // corrupted data — ignore
+        }
+      }
     }
   }, []);
 
@@ -287,6 +306,17 @@ export default function ConversationPageNew() {
     if (!convId || generalMessages.length === 0) return;
     localStorage.setItem(`homix_messages_${convId}`, JSON.stringify(generalMessages));
   }, [generalMessages]);
+
+  // Persist ranked results to localStorage whenever they change
+  useEffect(() => {
+    const convId = conversationIdRef.current;
+    if (!convId) return;
+    if (rankedResults.length === 0) {
+      localStorage.removeItem(`homix_ranked_results_${convId}`);
+    } else {
+      localStorage.setItem(`homix_ranked_results_${convId}`, JSON.stringify(rankedResults));
+    }
+  }, [rankedResults]);
 
   useEffect(() => {
     return () => {
@@ -413,6 +443,18 @@ export default function ConversationPageNew() {
                     : msg
                 )
               );
+            } else if (eventType === 'ranked_results') {
+              console.log('🏆 Received ranked_results event:', event.data);
+              const resultsData = Array.isArray(event.data)
+                ? event.data
+                : event.data?.results || event.data?.listings || [];
+
+              const properties = resultsData.map((listing: any, index: number) =>
+                convertListingToProperty(listing, index)
+              );
+
+              console.log('🏆 Converted ranked results:', properties);
+              setRankedResults(properties);
             } else if (!['done', 'show_suggestions_placeholder', 'suggestions'].includes(eventType)) {
               // Handle other events in thinking block
               let eventContent = '';
@@ -534,6 +576,8 @@ export default function ConversationPageNew() {
       setGeneralMessages(prev => [...prev, userMessage]);
       setInputValue('');
       setIsTyping(true);
+      setRankedResults([]);
+      setIsResultsExpanded(false);
 
       await processAIResponse(messageText);
     } else if (activeOwnerChat) {
@@ -884,22 +928,110 @@ export default function ConversationPageNew() {
 
           {/* Input Area */}
           <div className="px-10 pb-10">
-            <div className="max-w-[900px] mx-auto relative group">
-              <div className="absolute inset-0 bg-[#7065f0]/10 rounded-full blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Message Homix AI..."
-                className="relative w-full h-[72px] font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] text-[#110229] placeholder:text-[#8f90a6] bg-white border-[2px] border-[#f0effb] rounded-full px-8 pr-20 focus:border-[#7065f0] focus:outline-none transition-all duration-300 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] focus:shadow-[0_20px_50px_-15px_rgba(112,101,240,0.15)]"
-              />
-              <button
-                onClick={() => handleSendMessage()}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-[52px] h-[52px] bg-[#7065f0] rounded-full flex items-center justify-center hover:bg-[#5048c7] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-200"
-              >
-                <Send className="w-6 h-6 text-white" />
-              </button>
+            <div>
+              {/* Input row with toggle button */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 relative group">
+                  <div className="absolute inset-0 bg-[#7065f0]/10 rounded-full blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    onFocus={() => setIsResultsExpanded(false)}
+                    placeholder="Message Homix AI..."
+                    className="relative w-full h-[72px] font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] text-[#110229] placeholder:text-[#8f90a6] bg-white border-[2px] border-[#f0effb] rounded-full px-8 pr-20 focus:border-[#7065f0] focus:outline-none transition-all duration-300 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] focus:shadow-[0_20px_50px_-15px_rgba(112,101,240,0.15)]"
+                  />
+                  <button
+                    onClick={() => handleSendMessage()}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-[52px] h-[52px] bg-[#7065f0] rounded-full flex items-center justify-center hover:bg-[#5048c7] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-200"
+                  >
+                    <Send className="w-6 h-6 text-white" />
+                  </button>
+                </div>
+
+                {/* Ranked Results Toggle Button */}
+                {rankedResults.length > 0 && (
+                  <button
+                    onClick={() => setIsResultsExpanded(prev => !prev)}
+                    className={`flex items-center gap-2 h-[52px] px-5 rounded-full font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[13px] transition-all duration-[1500ms] whitespace-nowrap animate-in fade-in zoom-in duration-300 ${
+                      isResultsExpanded
+                        ? 'bg-[#7065f0] text-white shadow-lg shadow-purple-200'
+                        : 'bg-[#7065f0]/15 border-[2px] border-[#7065f0]/30 text-[#7065f0] hover:border-[#7065f0] hover:shadow-md'
+                    }`}
+                    style={{
+                      animation: 'resultsBtnAppear 1.5s ease-out forwards',
+                    }}
+                  >
+                    <Search className="w-4 h-4" />
+                    <span>ძიების შედეგები</span>
+                    <span className={`ml-1 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                      isResultsExpanded
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[#7065f0]/10 text-[#7065f0]'
+                    }`}>
+                      {rankedResults.length}
+                    </span>
+                    {isResultsExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                  </button>
+                )}
+                <style>{`
+                  @keyframes resultsBtnAppear {
+                    0% {
+                      background-color: #7065f0;
+                      color: white;
+                      border-color: #7065f0;
+                      box-shadow: 0 10px 25px -5px rgba(112, 101, 240, 0.4);
+                    }
+                    100% {
+                      background-color: rgba(112, 101, 240, 0.15);
+                      color: #7065f0;
+                      border-color: rgba(112, 101, 240, 0.3);
+                      box-shadow: none;
+                    }
+                  }
+                `}</style>
+              </div>
+
+              {/* Ranked Results Box */}
+              {isResultsExpanded && rankedResults.length > 0 && (
+                <div className="mt-4 bg-white border-[2px] border-[#f0effb] rounded-[24px] shadow-[0_20px_50px_-15px_rgba(112,101,240,0.1)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-[#f0effb]">
+                    <div className="flex items-center gap-2">
+                      <Search className="w-4 h-4 text-[#7065f0]" />
+                      <span className="font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] text-[#110229]">
+                        ძიების შედეგები
+                      </span>
+                      <span className="bg-[#7065f0]/10 text-[#7065f0] px-2 py-0.5 rounded-full text-[11px] font-bold">
+                        {rankedResults.length}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setIsResultsExpanded(false)}
+                      className="w-8 h-8 rounded-full hover:bg-[#f0effb] flex items-center justify-center transition-colors"
+                    >
+                      <X className="w-4 h-4 text-[#8f90a6]" />
+                    </button>
+                  </div>
+
+                  {/* Property Grid */}
+                  <div className="p-6 overflow-y-auto max-h-[400px]">
+                    <div className="grid grid-cols-4 gap-4">
+                      {rankedResults.map((property: Property) => (
+                        <PropertyCard
+                          key={property.id}
+                          property={property}
+                          showOwnerInfo={true}
+                          inChat={true}
+                          onChatWithOwner={currentView === 'general' ? handleChatWithOwner : undefined}
+                          onClick={() => handleViewProperty(property.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

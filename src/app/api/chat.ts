@@ -27,6 +27,7 @@ export type ChatStreamEventType =
     | 'error'
     | 'show_suggestions_placeholder'
     | 'suggestions'
+    | 'ranked_results'
 
 export interface ChatStreamEvent {
     type: ChatStreamEventType
