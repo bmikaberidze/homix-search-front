@@ -45,7 +45,7 @@ export default function HomepageWrapper() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="რას ეძებთ? (მაგ: 'ვიყიდი 2 ოთახიან ბინას თბილისში')"
+              placeholder="რას ეძებთ? (მაგ: 'ვიყიდი 2 ოთახიან ბინას თბილისში, 100000 დოლარად')"
               className="relative w-full h-[84px] font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] text-[#110229] placeholder:text-[#8f90a6] bg-white border-[2px] border-[#f0effb] rounded-full px-10 pr-20 focus:border-[#7065f0] focus:outline-none transition-all duration-300 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] focus:shadow-[0_20px_50px_-15px_rgba(112,101,240,0.15)]"
             />
             <button
@@ -59,7 +59,7 @@ export default function HomepageWrapper() {
           {/* Quick Action Buttons */}
           <div className="flex gap-4 justify-center mt-12 flex-wrap">
             <button
-              onClick={() => navigate('/chat?q=' + encodeURIComponent('გამარჯობა, გთხოვთ დამეხმაროთ ბინის შეძენაში!'))}
+              onClick={() => navigate('/chat?q=' + encodeURIComponent('გამარჯობა, გთხოვთ დამეხმაროთ ბინის შესყიდვაში!'))}
               className="bg-[#e7e6f9] text-[#7065f0] rounded-full px-8 py-4 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:bg-[#d5d4f5] border border-[#d5d4f5] transition-all uppercase tracking-wide flex items-center gap-2"
             >
               <span className="text-xl">🏠</span> Buy Property
