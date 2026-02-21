@@ -71,7 +71,7 @@ export default function HomepageWrapper() {
               <span className="text-xl">💰</span> Sell Property
             </button>
             <button
-              onClick={() => navigate('/chat?q=' + encodeURIComponent('გამარჯობა, მინდა დავიქირავო ბინა, გთხოვთ დამეხმაროთ!'))}
+              onClick={() => navigate('/chat?q=' + encodeURIComponent('გამარჯობა, მინდა დავიქირაო ბინა, გთხოვთ დამეხმაროთ!'))}
               className="bg-[#f3e9cc] text-[#D97706] rounded-full px-8 py-4 font-['Plus_Jakarta_Sans:Bold',sans-serif] font-bold text-[14px] hover:bg-[#ece0ba] border border-[#ece0ba] transition-all uppercase tracking-wide flex items-center gap-2"
             >
               <span className="text-xl">🔑</span> Rent Property
