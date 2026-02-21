@@ -10,7 +10,7 @@ import { useApp } from '@/app/context/AppContext';
 export default function HomepageWrapper() {
   const navigate = useNavigate();
   const { currentUser } = useApp();
-  const [searchQuery, setSearchQuery] = useState('გამარჯობა, ბინას ვეძებ თბილისში, დღეში 100 ლარად, აივნით!');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +45,7 @@ export default function HomepageWrapper() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="What are you looking for? (e.g., '2 bedroom apartment in New York')"
+              placeholder="რას ეძებთ? (მაგ: 'ვიყიდი 2 ოთახიან ბინას თბილისში')"
               className="relative w-full h-[84px] font-['Plus_Jakarta_Sans:Medium',sans-serif] font-medium text-[18px] text-[#110229] placeholder:text-[#8f90a6] bg-white border-[2px] border-[#f0effb] rounded-full px-10 pr-20 focus:border-[#7065f0] focus:outline-none transition-all duration-300 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] focus:shadow-[0_20px_50px_-15px_rgba(112,101,240,0.15)]"
             />
             <button
