@@ -11,6 +11,7 @@ type ChatApiPayload = {
     session_id: string
     conversation_id: string
     message: string
+    reference_urls?: string[]
 }
 
 export type ChatApiResult = {
@@ -78,6 +79,7 @@ export async function sendChatMessage(
     sessionId: string,
     conversationId: string,
     signal?: AbortSignal,
+    referenceUrls?: string[],
 ): Promise<ChatApiResult> {
     const env = (import.meta as { env?: Record<string, string> }).env
     const debugStop = env?.VITE_CHAT_DEBUG === 'true'
@@ -88,17 +90,22 @@ export async function sendChatMessage(
         throw new Error('Chat API debug stop enabled (VITE_CHAT_DEBUG=true)')
     }
 
+    const payload: ChatApiPayload = {
+        session_id: sessionId,
+        conversation_id: conversationId,
+        message,
+    }
+    if (referenceUrls && referenceUrls.length > 0) {
+        payload.reference_urls = referenceUrls
+    }
+
     const response = await fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
         },
-        body: JSON.stringify({
-            session_id: sessionId,
-            conversation_id: conversationId,
-            message,
-        } satisfies ChatApiPayload),
+        body: JSON.stringify(payload),
         signal,
     })
 
@@ -156,10 +163,20 @@ export async function streamChatMessage(
     conversationId: string,
     onEvent: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
+    referenceUrls?: string[],
 ): Promise<void> {
     const url = resolveChatStreamApiUrl()
 
     // console.log('Starting stream to:', url)
+
+    const payload: ChatApiPayload = {
+        session_id: sessionId,
+        conversation_id: conversationId,
+        message,
+    }
+    if (referenceUrls && referenceUrls.length > 0) {
+        payload.reference_urls = referenceUrls
+    }
 
     const response = await fetch(url, {
         method: 'POST',
@@ -167,11 +184,7 @@ export async function streamChatMessage(
             'Content-Type': 'application/json',
             Accept: 'text/event-stream',
         },
-        body: JSON.stringify({
-            session_id: sessionId,
-            conversation_id: conversationId,
-            message,
-        } satisfies ChatApiPayload),
+        body: JSON.stringify(payload),
         signal,
     })
 

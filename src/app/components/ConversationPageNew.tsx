@@ -5,6 +5,7 @@ import { sampleProperties } from '../data';
 import { getCurrentTime, convertListingToProperty } from '../utils';
 import { startSession, streamChatMessage, SessionNotFoundError } from '../api/chat';
 import PropertyCard from './PropertyCard';
+import MiniPropertyCard from './ui/MiniPropertyCard';
 import ScheduleVisitDialog from './ScheduleVisitDialog';
 import { MessageCircle, Send, Home as HomeIcon, User, Building2, Brain, ChevronDown, ChevronUp, Trash2, Calendar, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -163,6 +164,7 @@ export default function ConversationPageNew() {
   const [activeFilters, setActiveFilters] = useState<{ label: string, value: string }[]>([]);
   const [rankedResults, setRankedResults] = useState<Property[]>([]);
   const [isResultsExpanded, setIsResultsExpanded] = useState(false);
+  const [referencedProperties, setReferencedProperties] = useState<Property[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasInitialized = useRef(false);
@@ -350,7 +352,7 @@ export default function ConversationPageNew() {
   const currentMessages = currentView === 'general' ? generalMessages : (activeOwnerChat?.messages || []);
 
   // AI Response Processing
-  const processAIResponse = async (messageText: string) => {
+  const processAIResponse = async (messageText: string, referenceUrls?: string[]) => {
     requestControllerRef.current?.abort();
     const controller = new AbortController();
     requestControllerRef.current = controller;
@@ -493,7 +495,8 @@ export default function ConversationPageNew() {
               console.log('⚠️ Unhandled event type:', eventType, event);
             }
           },
-          controller.signal
+          controller.signal,
+          referenceUrls,
       );
 
       // Real property suggestions are already injected via the 'suggestions' SSE event.
@@ -573,13 +576,19 @@ export default function ConversationPageNew() {
 
     if (currentView === 'general') {
       // GENERAL AI CHAT
+      const refUrls = referencedProperties
+        .map(p => p.url)
+        .filter((url): url is string => !!url);
+
       setGeneralMessages(prev => [...prev, userMessage]);
       setInputValue('');
+      setReferencedProperties([]);
       setIsTyping(true);
-      setRankedResults([]);
+      // setRankedResults([]);
       setIsResultsExpanded(false);
 
-      await processAIResponse(messageText);
+
+      await processAIResponse(messageText, refUrls.length > 0 ? refUrls : undefined);
     } else if (activeOwnerChat) {
       // OWNER CHAT
       const updatedChat = {
@@ -727,6 +736,17 @@ export default function ConversationPageNew() {
   const handleViewProperty = (propertyId: string) => {
     toast.error('Viewing property is not available yet.');
   };
+
+  const handleSelectProperty = useCallback((property: Property) => {
+    setReferencedProperties(prev => {
+      if (prev.some(p => p.id === property.id)) return prev;
+      return [...prev, property];
+    });
+  }, []);
+
+  const handleRemoveReference = useCallback((propertyId: string) => {
+    setReferencedProperties(prev => prev.filter(p => p.id !== propertyId));
+  }, []);
 
   return (
     <>
@@ -880,6 +900,7 @@ export default function ConversationPageNew() {
                                   property={property}
                                   showOwnerInfo={true}
                                   inChat={true}
+                                  onSelect={handleSelectProperty}
                                   onChatWithOwner={currentView === 'general' ? handleChatWithOwner : undefined}
                                   onScheduleViewing={currentView === 'owner' ? handleScheduleVisitDialog : undefined}
                                   onClick={() => handleViewProperty(property.id)}
@@ -929,6 +950,18 @@ export default function ConversationPageNew() {
           {/* Input Area */}
           <div className="px-10 pb-10">
             <div>
+              {/* Referenced Properties Mini Cards */}
+              {referencedProperties.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3 animate-in fade-in duration-200">
+                  {referencedProperties.map(property => (
+                    <MiniPropertyCard
+                      key={property.id}
+                      property={property}
+                      onRemove={handleRemoveReference}
+                    />
+                  ))}
+                </div>
+              )}
               {/* Input row with toggle button */}
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative group">
@@ -1024,6 +1057,7 @@ export default function ConversationPageNew() {
                           property={property}
                           showOwnerInfo={true}
                           inChat={true}
+                          onSelect={handleSelectProperty}
                           onChatWithOwner={currentView === 'general' ? handleChatWithOwner : undefined}
                           onClick={() => handleViewProperty(property.id)}
                         />

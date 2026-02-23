@@ -1,5 +1,5 @@
 import { Property } from '@/app/types';
-import { MessageCircle, Calendar, User, Building2, Bed, Bath, Square } from 'lucide-react';
+import { MessageCircle, Calendar, User, Building2, Bed, Bath, Square, ExternalLink } from 'lucide-react';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 
 interface PropertyCardProps {
@@ -8,6 +8,7 @@ interface PropertyCardProps {
   inChat?: boolean;
   onChatWithOwner?: (property: Property) => void;
   onScheduleViewing?: (property: Property) => void;
+  onSelect?: (property: Property) => void;
   onClick?: () => void;
 }
 
@@ -17,13 +18,33 @@ export default function PropertyCard({
   inChat = false,
   onChatWithOwner,
   onScheduleViewing,
+  onSelect,
   onClick
 }: PropertyCardProps) {
-  const handleCardClick = () => {
+  const handleCardClick = (e: React.MouseEvent) => {
+    // If clicking a link, button, or role="button" inside the card, don't trigger the card's click action
+    if ((e.target as HTMLElement).closest('a') || 
+        (e.target as HTMLElement).closest('button') || 
+        (e.target as HTMLElement).closest('[role="button"]')) {
+      return;
+    }
+
+    if (onSelect && inChat) {
+      onSelect(property);
+      return;
+    }
     if (property.url) {
       window.open(property.url, '_blank', 'noopener,noreferrer');
     } else if (onClick) {
       onClick();
+    }
+  };
+
+  const getSourceLabel = (url: string): string => {
+    try {
+      return new URL(url).hostname.replace('www.', '');
+    } catch {
+      return url;
     }
   };
 
@@ -85,8 +106,28 @@ export default function PropertyCard({
             </div>
           </div>
 
+          {property.url && (
+            <a
+              href={property.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1.5 mb-4 text-[11px] font-bold text-[#8f90a6] hover:text-[#7065f0] transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" />
+              <span>{getSourceLabel(property.url)}</span>
+            </a>
+          )}
+
           {showOwnerInfo && (
-            <div className="mb-4 p-3 bg-[#f7f7fd] rounded-xl flex items-center justify-between">
+            <div
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (property.url) window.open(property.url, '_blank', 'noopener,noreferrer');
+              }}
+              className="mb-4 p-3 bg-[#f7f7fd] rounded-xl flex items-center justify-between hover:bg-[#efeffd] transition-all cursor-pointer group/owner"
+            >
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm">
                   {property.owner.type === 'individual' ?
