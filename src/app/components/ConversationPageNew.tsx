@@ -572,6 +572,7 @@ export default function ConversationPageNew() {
       type: 'user',
       content: messageText,
       timestamp: getCurrentTime(),
+      referencedProperties: referencedProperties.length > 0 ? [...referencedProperties] : undefined,
     };
 
     if (currentView === 'general') {
@@ -863,7 +864,14 @@ export default function ConversationPageNew() {
             {currentMessages.map((msg: Message) => (
               <div key={msg.id} className="w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
                 {msg.type === 'user' ? (
-                  <div className="flex justify-end">
+                  <div className="flex flex-col items-end gap-2">
+                    {msg.referencedProperties && msg.referencedProperties.length > 0 && (
+                      <div className="flex flex-wrap gap-2 justify-end max-w-[70%]">
+                        {msg.referencedProperties.map(p => (
+                          <MiniPropertyCard key={p.id} property={p} readOnly />
+                        ))}
+                      </div>
+                    )}
                     <div className="bg-[#110229] rounded-[24px] rounded-tr-none px-6 py-4 max-w-[70%] shadow-xl shadow-gray-200/50">
                       <MarkdownText
                         content={msg.content}

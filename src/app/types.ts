@@ -30,6 +30,7 @@ export interface Message {
     properties?: Property[]
     thinking?: string
     showPlaceholders?: boolean
+    referencedProperties?: Property[]
 }
 
 export interface OwnerChat {
