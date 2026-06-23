@@ -59,4 +59,4 @@ Mock auth system in `AuthDialog.tsx` using localStorage. User types: buyer/selle
 
 ## Deployment
 
-GitHub Pages via `gh-pages` package. Base path: `/homix-front/`. Triggered by push to `main`. Node 20.
+GitHub Pages via `gh-pages` package. Base path: `/homix-search-front/`. Triggered by push to `main`. Node 20.

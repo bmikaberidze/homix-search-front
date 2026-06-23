@@ -64,6 +64,6 @@ export const router = createBrowserRouter(
     },
   ],
   {
-    basename: '/homix-front/',
+    basename: '/homix-search-front/',
   }
 );
