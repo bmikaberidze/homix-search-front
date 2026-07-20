@@ -60,3 +60,7 @@ Mock auth system in `AuthDialog.tsx` using localStorage. User types: buyer/selle
 ## Deployment
 
 GitHub Pages via `gh-pages` package. Base path: `/homix-search-front/`. Triggered by push to `main`. Node 20.
+
+## Roadmap
+
+Workspace-wide deferred features live in `../../docs/roadmap.md` (see the "search/front/" section, if present). Consult when a task touches a listed item. **Mutations (mark-done, remove, add) require explicit operator approval** — propose the change first, edit only after a "yes". Never silently mutate.
